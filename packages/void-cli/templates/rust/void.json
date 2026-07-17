@@ -1,5 +1,6 @@
 {
   "name": "@void/{{name}}",
+  "version": "1.0.0",
   "type": "rust",
   "buildDir": "@void/{{name}}"
 }

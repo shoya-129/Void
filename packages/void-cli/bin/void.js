@@ -192,7 +192,7 @@ function runBuild(pluginPathArg) {
   // Write package.json
   const pkgJson = {
     name: pluginName,
-    version: "1.0.0",
+    version: manifest.version || "1.0.0",
     type: "module",
     main: "index.js",
     dependencies: {

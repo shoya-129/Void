@@ -11,6 +11,7 @@ node_modules/
 # Scoped local build directories
 **/@void/
 **/@tgrv/
+**/void-math/
 
 # System and logs
 .DS_Store
