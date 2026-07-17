@@ -46,33 +46,53 @@ void init
 
 ### Create a new plugin
 ```bash
-# Instantiates a template
+# Instantiate a template
 void create my-plugin
 ```
 
 ### Compile & Build the plugin
+Run the build command inside the plugin folder to compile it to WebAssembly and generate package wrappers:
 ```bash
+cd my-plugin
 void build
 ```
 
-### Add the plugin to your application
-```bash
-void add ./plugins/my-plugin
-```
+### Test your plugin locally
+To test your newly created plugin inside an application:
 
-### Execute the app
-Write your entrypoint:
-```javascript
-// app.js
-import myPlugin from "@void/my-plugin";
+1. **Initialize a test app**:
+   Create a separate folder for your test app and set up the Void runtime:
+   ```bash
+   mkdir test-app
+   cd test-app
+   void init
+   ```
 
-const result = await myPlugin.hello({ name: "Void Developer" });
-console.log(result);
-```
-Then run it:
-```bash
-node app.js
-```
+2. **Add your local plugin**:
+   Install the plugin directly from its local path. The CLI will resolve the package name, locate the build artifacts, and physically copy the package into your local `node_modules`:
+   ```bash
+   void add ../my-plugin
+   ```
+   *(Or install by package name: `void add @void/my-plugin` if you are in the same workspace).*
+
+3. **Write and run your test script**:
+   Create an `app.js` file to import and call your plugin:
+   ```javascript
+   // app.js
+   import myPlugin from "@void/my-plugin";
+
+   try {
+     const result = await myPlugin.hello({ name: "Void Developer" });
+     console.log("Plugin output:", result);
+   } catch (error) {
+     console.error("Error executing plugin:", error.message);
+   }
+   ```
+   Execute the test application:
+   ```bash
+   node app.js
+   ```
+
 
 ---
 

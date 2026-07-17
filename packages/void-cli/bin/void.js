@@ -10,7 +10,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const cliRoot = path.resolve(__dirname, "..");
 const isLocalDev = fs.existsSync(path.join(cliRoot, "../../packages/void-runtime"));
-const workspaceDir = isLocalDev ? path.resolve(cliRoot, "../..") : process.cwd();
+
+function findWorkspaceRoot(dir) {
+  const checkPath = path.join(dir, "packages", "void-runtime");
+  if (fs.existsSync(checkPath)) {
+    return dir;
+  }
+  const parent = path.dirname(dir);
+  if (parent === dir) {
+    return null;
+  }
+  return findWorkspaceRoot(parent);
+}
+
+const workspaceRoot = findWorkspaceRoot(process.cwd());
+const workspaceDir = workspaceRoot || (isLocalDev ? path.resolve(cliRoot, "../..") : process.cwd());
+
 
 // ANSI Color formatting codes
 const colors = {
@@ -268,48 +283,99 @@ function runAdd(pluginNameInput, appDir) {
     process.exit(1);
   }
 
-  const { name: pluginName, version: requestedVersion } = parsePackageSpec(pluginNameInput);
-  const config = JSON.parse(fs.readFileSync(configInfo.configPath, "utf8"));
-  
-  // Look up local build directory
+  let pluginName = pluginNameInput;
+  let requestedVersion = null;
   let localBuildDir = null;
 
-  const scanLocations = [
-    path.join(workspaceDir, "plugins"),
-    path.join(workspaceDir, "packages"),
-    path.join(workspaceDir, "sdk")
-  ];
+  // Check if input is a local path
+  const isPath = pluginNameInput.startsWith(".") || 
+                 pluginNameInput.startsWith("/") || 
+                 pluginNameInput.startsWith("\\") || 
+                 pluginNameInput.includes(":\\");
 
-  for (const root of scanLocations) {
-    if (fs.existsSync(root)) {
-      const subdirs = fs.readdirSync(root);
-      for (const subdir of subdirs) {
-        const pPath = path.join(root, subdir);
-        if (fs.statSync(pPath).isDirectory()) {
-          // Scans nested scopes (e.g. plugins/math/@tgrv/void-math)
-          const entries = fs.readdirSync(pPath);
-          for (const entry of entries) {
-            if (entry.startsWith("@")) {
-              const scopePath = path.join(pPath, entry);
-              const subfolders = fs.readdirSync(scopePath);
-              for (const name of subfolders) {
-                const pkgPath = path.join(scopePath, name, "package.json");
-                if (fs.existsSync(pkgPath)) {
-                  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-                  if (pkg.name === pluginName) {
-                    localBuildDir = path.join(scopePath, name);
-                    break;
+  if (isPath) {
+    const absolutePath = path.resolve(appDir, pluginNameInput);
+    if (fs.existsSync(absolutePath)) {
+      const stats = fs.statSync(absolutePath);
+      const searchDir = stats.isDirectory() ? absolutePath : path.dirname(absolutePath);
+      
+      const voidJsonPath = path.join(searchDir, "void.json");
+      const packageJsonPath = path.join(searchDir, "package.json");
+
+      if (fs.existsSync(voidJsonPath)) {
+        try {
+          const manifest = JSON.parse(fs.readFileSync(voidJsonPath, "utf8"));
+          pluginName = manifest.name;
+          if (manifest.buildDir) {
+            const buildPath = path.join(searchDir, manifest.buildDir);
+            if (fs.existsSync(buildPath)) {
+              localBuildDir = buildPath;
+            }
+          } else {
+            localBuildDir = searchDir;
+          }
+        } catch (e) {
+          console.error(`${cross} ${colors.red}Error parsing void.json at path: ${voidJsonPath}${colors.reset}`);
+        }
+      } else if (fs.existsSync(packageJsonPath)) {
+        try {
+          const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+          pluginName = pkg.name;
+          localBuildDir = searchDir;
+        } catch (e) {
+          console.error(`${cross} ${colors.red}Error parsing package.json at path: ${packageJsonPath}${colors.reset}`);
+        }
+      } else {
+        pluginName = path.basename(searchDir);
+        localBuildDir = searchDir;
+      }
+    }
+  } else {
+    const parsed = parsePackageSpec(pluginNameInput);
+    pluginName = parsed.name;
+    requestedVersion = parsed.version;
+  }
+
+  const config = JSON.parse(fs.readFileSync(configInfo.configPath, "utf8"));
+
+  if (!localBuildDir) {
+    const scanLocations = [
+      path.join(workspaceDir, "plugins"),
+      path.join(workspaceDir, "packages"),
+      path.join(workspaceDir, "sdk")
+    ];
+
+    for (const root of scanLocations) {
+      if (fs.existsSync(root)) {
+        const subdirs = fs.readdirSync(root);
+        for (const subdir of subdirs) {
+          const pPath = path.join(root, subdir);
+          if (fs.statSync(pPath).isDirectory()) {
+            // Scans nested scopes (e.g. plugins/math/@tgrv/void-math)
+            const entries = fs.readdirSync(pPath);
+            for (const entry of entries) {
+              if (entry.startsWith("@")) {
+                const scopePath = path.join(pPath, entry);
+                const subfolders = fs.readdirSync(scopePath);
+                for (const name of subfolders) {
+                  const pkgPath = path.join(scopePath, name, "package.json");
+                  if (fs.existsSync(pkgPath)) {
+                    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+                    if (pkg.name === pluginName) {
+                      localBuildDir = path.join(scopePath, name);
+                      break;
+                    }
                   }
                 }
               }
+              if (localBuildDir) break;
             }
-            if (localBuildDir) break;
           }
+          if (localBuildDir) break;
         }
-        if (localBuildDir) break;
       }
+      if (localBuildDir) break;
     }
-    if (localBuildDir) break;
   }
 
   const targetPluginDir = path.join(appDir, "node_modules", pluginName);

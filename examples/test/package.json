@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@tgrv/void-math": "1.0.0",
+    "@tgrv/void-math": "^1.0.2",
     "@tgrv/void-runtime": "^1.0.0"
   }
 }
