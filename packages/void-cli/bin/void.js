@@ -235,6 +235,91 @@ export default plugin;
   return buildOutputDir;
 }
 
+function runAdd(pluginName, appDir) {
+  const configInfo = findConfig(appDir);
+  if (!configInfo) {
+    console.error(`${cross} ${colors.red}Error: void.config.json not found. Run 'void init' first.${colors.reset}`);
+    process.exit(1);
+  }
+
+  const config = JSON.parse(fs.readFileSync(configInfo.configPath, "utf8"));
+  
+  // Look up local build directory
+  let localBuildDir = null;
+
+  const scanLocations = [
+    path.join(workspaceDir, "plugins"),
+    path.join(workspaceDir, "packages"),
+    path.join(workspaceDir, "sdk")
+  ];
+
+  for (const root of scanLocations) {
+    if (fs.existsSync(root)) {
+      const subdirs = fs.readdirSync(root);
+      for (const subdir of subdirs) {
+        const pPath = path.join(root, subdir);
+        if (fs.statSync(pPath).isDirectory()) {
+          // Scans nested scopes (e.g. plugins/math/@tgrv/void-math)
+          const entries = fs.readdirSync(pPath);
+          for (const entry of entries) {
+            if (entry.startsWith("@")) {
+              const scopePath = path.join(pPath, entry);
+              const subfolders = fs.readdirSync(scopePath);
+              for (const name of subfolders) {
+                const pkgPath = path.join(scopePath, name, "package.json");
+                if (fs.existsSync(pkgPath)) {
+                  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+                  if (pkg.name === pluginName) {
+                    localBuildDir = path.join(scopePath, name);
+                    break;
+                  }
+                }
+              }
+            }
+            if (localBuildDir) break;
+          }
+        }
+        if (localBuildDir) break;
+      }
+    }
+    if (localBuildDir) break;
+  }
+
+  const targetPluginDir = path.join(appDir, "node_modules", pluginName);
+  ensureDir(path.dirname(targetPluginDir));
+
+  if (localBuildDir) {
+    console.log(`${info} Installing local build of '${colors.bold}${pluginName}${colors.reset}' from ${localBuildDir} to ${targetPluginDir}...`);
+    if (fs.existsSync(targetPluginDir)) {
+      fs.rmSync(targetPluginDir, { recursive: true, force: true });
+    }
+    copyFolderRecursive(localBuildDir, targetPluginDir);
+  } else {
+    console.log(`${info} Installing '${colors.bold}${pluginName}${colors.reset}' from NPM registry...`);
+    const npmSuccess = runCommand(`npm install ${pluginName}`, { cwd: appDir });
+    if (!npmSuccess) {
+      console.error(`${cross} ${colors.red}Error: Failed to install package '${pluginName}' via npm.${colors.reset}`);
+      process.exit(1);
+    }
+  }
+
+  // Update package.json of the application
+  const pkgPath = path.join(appDir, "package.json");
+  if (fs.existsSync(pkgPath)) {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    pkg.dependencies = pkg.dependencies || {};
+    pkg.dependencies[pluginName] = "1.0.0";
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+  }
+
+  // Update void.config.json
+  config.plugins = config.plugins || {};
+  config.plugins[pluginName] = "^1.0.0";
+  fs.writeFileSync(configInfo.configPath, JSON.stringify(config, null, 2));
+
+  console.log(`${tick} ${colors.green}Successfully added '${pluginName}'!${colors.reset}\n`);
+}
+
 async function main() {
   switch (command) {
     case "init": {
@@ -244,9 +329,11 @@ async function main() {
 
       console.log(`\n${info} Initializing Void project at: ${colors.bold}${targetDir}${colors.reset}`);
 
+      const hasExistingPkg = fs.existsSync(path.join(targetDir, "package.json"));
+
       // Initialize package.json if not exists
       const pkgPath = path.join(targetDir, "package.json");
-      if (!fs.existsSync(pkgPath)) {
+      if (!hasExistingPkg) {
         const defaultPkg = {
           name: path.basename(targetDir),
           version: "1.0.0",
@@ -266,10 +353,11 @@ async function main() {
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
       }
 
-      // Write default application app.js
-      const appPath = path.join(targetDir, "app.js");
-      if (!fs.existsSync(appPath)) {
-        const appContent = `import math from "@tgrv/void-math";
+      // If it's a fresh project, write default app.js
+      if (!hasExistingPkg) {
+        const appPath = path.join(targetDir, "app.js");
+        if (!fs.existsSync(appPath)) {
+          const appContent = `import math from "@tgrv/void-math";
 
 console.log("=== Void Application ===");
 
@@ -279,7 +367,8 @@ try {
   console.error("Error running application:", e.message);
 }
 `;
-        fs.writeFileSync(appPath, appContent);
+          fs.writeFileSync(appPath, appContent);
+        }
       }
 
       // Install void-runtime via NPM
@@ -289,11 +378,19 @@ try {
         console.error(`${cross} ${colors.red}Failed to install @tgrv/void-runtime via npm.${colors.reset}`);
       }
 
+      // If it's a fresh project, also install @tgrv/void-math using the shared installer logic
+      if (!hasExistingPkg) {
+        runAdd("@tgrv/void-math", targetDir);
+      }
+
       console.log(`${tick} ${colors.green}Successfully initialized Void project!${colors.reset}`);
-      console.log(`\nTo add plugins, you can run:`);
-      console.log(`  ${colors.cyan}npx void add <plugin-name>${colors.reset}`);
-      console.log(`For example:`);
-      console.log(`  ${colors.cyan}npx void add @tgrv/void-math${colors.reset}\n`);
+      if (!hasExistingPkg) {
+        console.log(`\nTo run the starter app, execute:`);
+        console.log(`  ${colors.cyan}node app.js${colors.reset}\n`);
+      } else {
+        console.log(`\nTo add plugins, you can run:`);
+        console.log(`  ${colors.cyan}npx void add <plugin-name>${colors.reset}\n`);
+      }
       break;
     }
 
@@ -385,88 +482,7 @@ try {
         console.error(`${cross} ${colors.red}Error: Please specify the plugin to add. e.g. void add @tgrv/void-math${colors.reset}`);
         process.exit(1);
       }
-
-      const configInfo = findConfig(process.cwd());
-      if (!configInfo) {
-        console.error(`${cross} ${colors.red}Error: void.config.json not found. Run 'void init' first.${colors.reset}`);
-        process.exit(1);
-      }
-
-      const config = JSON.parse(fs.readFileSync(configInfo.configPath, "utf8"));
-      
-      // Look up local build directory inside the plugins/ or packages/ directory tree
-      let localBuildDir = null;
-
-      const scanLocations = [
-        path.join(workspaceDir, "plugins"),
-        path.join(workspaceDir, "packages")
-      ];
-
-      for (const root of scanLocations) {
-        if (fs.existsSync(root)) {
-          const subdirs = fs.readdirSync(root);
-          for (const subdir of subdirs) {
-            const pPath = path.join(root, subdir);
-            if (fs.statSync(pPath).isDirectory()) {
-              // Scans nested scopes (e.g. plugins/math/@tgrv/void-math)
-              const entries = fs.readdirSync(pPath);
-              for (const entry of entries) {
-                if (entry.startsWith("@")) {
-                  const scopePath = path.join(pPath, entry);
-                  const subfolders = fs.readdirSync(scopePath);
-                  for (const name of subfolders) {
-                    const pkgPath = path.join(scopePath, name, "package.json");
-                    if (fs.existsSync(pkgPath)) {
-                      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-                      if (pkg.name === pluginName) {
-                        localBuildDir = path.join(scopePath, name);
-                        break;
-                      }
-                    }
-                  }
-                }
-                if (localBuildDir) break;
-              }
-            }
-            if (localBuildDir) break;
-          }
-        }
-        if (localBuildDir) break;
-      }
-
-      const targetPluginDir = path.join(process.cwd(), "node_modules", pluginName);
-      ensureDir(path.dirname(targetPluginDir));
-
-      if (localBuildDir) {
-        console.log(`${info} Installing local build of '${colors.bold}${pluginName}${colors.reset}' from ${localBuildDir} to ${targetPluginDir}...`);
-        if (fs.existsSync(targetPluginDir)) {
-          fs.rmSync(targetPluginDir, { recursive: true, force: true });
-        }
-        copyFolderRecursive(localBuildDir, targetPluginDir);
-      } else {
-        console.log(`${info} Installing '${colors.bold}${pluginName}${colors.reset}' from NPM registry...`);
-        const npmSuccess = runCommand(`npm install ${pluginName}`, { cwd: process.cwd() });
-        if (!npmSuccess) {
-          console.error(`${cross} ${colors.red}Error: Failed to install package '${pluginName}' via npm.${colors.reset}`);
-          process.exit(1);
-        }
-      }
-
-      // Update package.json of the application
-      const pkgPath = path.join(process.cwd(), "package.json");
-      if (fs.existsSync(pkgPath)) {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-        pkg.dependencies = pkg.dependencies || {};
-        pkg.dependencies[pluginName] = "1.0.0";
-        fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
-      }
-
-      // Update void.config.json
-      config.plugins = config.plugins || {};
-      config.plugins[pluginName] = "^1.0.0";
-      fs.writeFileSync(configInfo.configPath, JSON.stringify(config, null, 2));
-
-      console.log(`${tick} ${colors.green}Successfully added '${pluginName}'!${colors.reset}\n`);
+      runAdd(pluginName, process.cwd());
       break;
     }
 
