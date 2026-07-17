@@ -1,6 +1,6 @@
 {
   "registry": "./registry",
   "plugins": {
-    "@tgrv/void-math": "^1.0.1"
+    "@tgrv/void-math": "^1.0.2"
   }
 }
