@@ -1,0 +1,5 @@
+{
+  "name": "@tgrv/void-math",
+  "type": "go",
+  "buildDir": "void-math"
+}
