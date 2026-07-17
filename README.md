@@ -15,12 +15,12 @@ void/
 │   └── void-sdk-go/      # Go memory-pinning SDK
 ├── packages/
 │   ├── void-cli/         # Developer command line interface
+│   │       ├── templates/
+│   │           ├── rust/             # Starter boilerplate for Rust plugins
+│   │           └── go/               # Starter boilerplate for Go plugins
 │   └── void-runtime/     # Dynamic JS reflection runtime loader
 ├── plugins/
 │   └── math/             # Example Go math plugin
-├── templates/
-│   ├── rust/             # Starter boilerplate for Rust plugins
-│   └── go/               # Starter boilerplate for Go plugins
 └── README.md             # This documentation
 ```
 

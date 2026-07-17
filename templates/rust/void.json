@@ -1,5 +1,0 @@
-{
-  "name": "@void/{{name}}",
-  "type": "rust",
-  "buildDir": "@void/{{name}}"
-}
