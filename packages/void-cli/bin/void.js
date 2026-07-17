@@ -8,7 +8,9 @@ import readline from "readline";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const workspaceDir = path.resolve(__dirname, "../../..");
+const cliRoot = path.resolve(__dirname, "..");
+const isLocalDev = fs.existsSync(path.join(cliRoot, "../../packages/void-runtime"));
+const workspaceDir = isLocalDev ? path.resolve(cliRoot, "../..") : process.cwd();
 
 // ANSI Color formatting codes
 const colors = {
@@ -196,6 +198,9 @@ function runBuild(pluginPathArg) {
     dependencies: {
       "@tgrv/void-runtime": "^1.0.0",
     },
+    publishConfig: {
+      access: "public"
+    }
   };
   fs.writeFileSync(path.join(buildOutputDir, "package.json"), JSON.stringify(pkgJson, null, 2));
 
@@ -310,7 +315,7 @@ try {
 
         console.log(`${info} Creating Rust plugin template at ${colors.bold}${targetDir}${colors.reset}...`);
         ensureDir(targetDir);
-        const templateSrc = path.join(workspaceDir, "templates", "rust");
+        const templateSrc = path.join(cliRoot, "templates", "rust");
         copyFolderRecursive(templateSrc, targetDir, {
           "\\{\\{name\\}\\}": folderName,
           "\\{\\{type\\}\\}": "rust",
@@ -327,7 +332,7 @@ try {
 
         console.log(`${info} Creating Go plugin template at ${colors.bold}${targetDir}${colors.reset}...`);
         ensureDir(targetDir);
-        const templateSrc = path.join(workspaceDir, "templates", "go");
+        const templateSrc = path.join(cliRoot, "templates", "go");
         copyFolderRecursive(templateSrc, targetDir, {
           "\\{\\{name\\}\\}": folderName,
           "\\{\\{type\\}\\}": "go",
@@ -335,7 +340,8 @@ try {
         });
       }
 
-      console.log(`${tick} ${colors.green}Plugin created successfully under '${pluginPathArg}'!${colors.reset}\n`);
+      console.log(`${tick} ${colors.green}Plugin created successfully under '${pluginPathArg}'!${colors.reset}`);
+      console.log(`${info} ${colors.yellow}Reminder: Make sure to include build directories in your main .gitignore to avoid committing builds (e.g., add **/@void/ and **/@tgrv/).${colors.reset}\n`);
       break;
     }
 
@@ -350,9 +356,9 @@ try {
       // 1. Run build
       const buildOutputDir = runBuild(pluginPathArg);
 
-      // 2. Call npm publish inside the output build folder
-      console.log(`\n${info} Running 'npm publish' inside: ${colors.bold}${buildOutputDir}${colors.reset}`);
-      const publishSuccess = runCommand("npm publish", { cwd: buildOutputDir });
+      // 2. Call npm publish --access public inside the output build folder
+      console.log(`\n${info} Running 'npm publish --access public' inside: ${colors.bold}${buildOutputDir}${colors.reset}`);
+      const publishSuccess = runCommand("npm publish --access public", { cwd: buildOutputDir });
       if (!publishSuccess) {
         console.log(`\n${warning} ${colors.yellow}NPM publish failed or completed as dry run (check NPM login credentials).${colors.reset}`);
       } else {
