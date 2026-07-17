@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/tgrv/void-sdk-go"
+	"github.com/shoya-129/void-sdk-go"
 )
 
 // Add implements addition on float numbers a and b.

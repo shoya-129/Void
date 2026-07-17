@@ -1,9 +1,0 @@
-{
-  "name": "@tgrv/void-math",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "index.js",
-  "dependencies": {
-    "@tgrv/void-runtime": "^1.0.0"
-  }
-}
