@@ -199,7 +199,7 @@ function runBuild(pluginPathArg) {
     }
   }
 
-  // Write package.json if it does not already exist
+  // Write package.json if it does not already exist, or check version if it does
   const packageJsonPath = path.join(buildOutputDir, "package.json");
   if (!fs.existsSync(packageJsonPath)) {
     const pkgJson = {
@@ -215,6 +215,17 @@ function runBuild(pluginPathArg) {
       }
     };
     fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
+  } else {
+    try {
+      const existingPkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+      if (existingPkg.version !== manifest.version) {
+        console.log(`${info} Version mismatch detected in ${packageJsonPath}. Updating from ${existingPkg.version} to ${manifest.version} to match void.json.`);
+        existingPkg.version = manifest.version || "1.0.0";
+        fs.writeFileSync(packageJsonPath, JSON.stringify(existingPkg, null, 2));
+      }
+    } catch (err) {
+      console.warn(`${warning} Failed to check/update existing package.json version: ${err.message}`);
+    }
   }
 
   // Generate standard ESM index.js loader
