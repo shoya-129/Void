@@ -1,6 +1,6 @@
 {
   "name": "@tgrv/void-math",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "go",
   "buildDir": "@void/void-math"
 }

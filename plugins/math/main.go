@@ -8,36 +8,42 @@ import (
 
 // Add implements addition on float numbers a and b.
 func Add(args map[string]json.RawMessage) (any, error) {
-	if val, ok := args["numbers"]; ok {
-		var numbers []float64
-		if err := json.Unmarshal(val, &numbers); err != nil {
+	if _, ok := args["numbers"]; ok {
+		rawNumbers, err := void.GetArray(args, "numbers")
+		if err != nil {
 			return nil, fmt.Errorf("invalid parameter 'numbers', expected an array of numbers")
 		}
-		if len(numbers) > 20 {
+		if len(rawNumbers) > 20 {
 			return nil, fmt.Errorf("maximum of 20 numbers allowed")
 		}
-		if len(numbers) == 0 {
+		if len(rawNumbers) == 0 {
 			return nil, fmt.Errorf("at least one number is required")
 		}
-		var sum float64
-		for _, num := range numbers {
+		var sum int
+		for _, rawNum := range rawNumbers {
+			var num int
+			if err := json.Unmarshal(rawNum, &num); err != nil {
+				return nil, fmt.Errorf("invalid parameter 'numbers', expected an array of numbers")
+			}
 			sum += num
 		}
 		return sum, nil
 	}
 
-	var a, b float64
-
-	if val, ok := args["a"]; ok {
-		_ = json.Unmarshal(val, &a)
-	} else {
-		return nil, fmt.Errorf("missing parameter 'a' or 'numbers'")
+	a, err := void.GetInt(args, "a")
+	if err != nil {
+		if _, ok := args["a"]; !ok {
+			return nil, fmt.Errorf("missing parameter 'a' or 'numbers'")
+		}
+		return nil, err
 	}
 
-	if val, ok := args["b"]; ok {
-		_ = json.Unmarshal(val, &b)
-	} else {
-		return nil, fmt.Errorf("missing parameter 'b'")
+	b, err := void.GetInt(args, "b")
+	if err != nil {
+		if _, ok := args["b"]; !ok {
+			return nil, fmt.Errorf("missing parameter 'b'")
+		}
+		return nil, err
 	}
 
 	return a + b, nil
