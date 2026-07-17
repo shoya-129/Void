@@ -189,20 +189,32 @@ function runBuild(pluginPathArg) {
   // Copy WASM
   fs.copyFileSync(builtWasmPath, path.join(buildOutputDir, "plugin.wasm"));
 
-  // Write package.json
-  const pkgJson = {
-    name: pluginName,
-    version: manifest.version || "1.0.0",
-    type: "module",
-    main: "index.js",
-    dependencies: {
-      "@tgrv/void-runtime": "^1.0.0",
-    },
-    publishConfig: {
-      access: "public"
+  // Clean up temporary compiled WASM
+  if (path.dirname(builtWasmPath) === absolutePluginDir) {
+    try {
+      fs.unlinkSync(builtWasmPath);
+    } catch (e) {
+      // Ignore
     }
-  };
-  fs.writeFileSync(path.join(buildOutputDir, "package.json"), JSON.stringify(pkgJson, null, 2));
+  }
+
+  // Write package.json if it does not already exist
+  const packageJsonPath = path.join(buildOutputDir, "package.json");
+  if (!fs.existsSync(packageJsonPath)) {
+    const pkgJson = {
+      name: pluginName,
+      version: manifest.version || "1.0.0",
+      type: "module",
+      main: "index.js",
+      dependencies: {
+        "@tgrv/void-runtime": "^1.0.0",
+      },
+      publishConfig: {
+        access: "public"
+      }
+    };
+    fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
+  }
 
   // Generate standard ESM index.js loader
   const indexJsContent = `import { runtime } from "@tgrv/void-runtime";
