@@ -88,7 +88,7 @@ const command = args[0];
 
 if (!command) {
   console.log(`
-${colors.bold}${colors.cyan}Void CLI V2 - WASM Plugin Manager${colors.reset}
+${colors.bold}${colors.cyan}Void CLI - WASM Plugin Manager${colors.reset}
 
 ${colors.bold}Usage:${colors.reset}
   ${colors.green}void init [path]${colors.reset}              - Initialize a new application project at path (default: .)
