@@ -1,0 +1,6 @@
+{
+  "name": "@tgrv/void-crypto",
+  "version": "1.0.2",
+  "type": "rust",
+  "buildDir": "@void/void-crypto"
+}

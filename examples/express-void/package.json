@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node --experimental-strip-types src/app.ts",
     "dev": "npx tsx src/app.ts",
+    "start:normal": "npx tsx src/app.ts",
+    "start:void": "npx tsx src/server-void.ts",
+    "benchmark": "npx tsx src/benchmark.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,9 +16,10 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@tgrv/void-math": "^1.0.2",
+    "@tgrv/void-math": "^1.0.5",
     "@tgrv/void-runtime": "^1.0.0",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "@tgrv/void-crypto": "^1.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

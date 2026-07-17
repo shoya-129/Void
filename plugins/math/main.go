@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"github.com/shoya-129/Void/sdk/void-sdk-go"
 )
 
@@ -67,7 +68,113 @@ func FormatMessage(args map[string]json.RawMessage) (any, error) {
 	return fmt.Sprintf(template, value), nil
 }
 
+// isPrime checks if a number is prime.
+func isPrime(n int) bool {
+	if n <= 1 {
+		return false
+	}
+	for i := 2; i*i <= n; i++ {
+		if n%i == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// CountPrimes counts the number of primes up to a given limit.
+func CountPrimes(args map[string]json.RawMessage) (any, error) {
+	limit, err := void.GetInt(args, "limit")
+	if err != nil {
+		return nil, err
+	}
+	count := 0
+	for i := 2; i <= limit; i++ {
+		isPrime := true
+		for j := 2; j*j <= i; j++ {
+			if i%j == 0 {
+				isPrime = false
+				break
+			}
+		}
+		if isPrime {
+			count++
+		}
+	}
+	return count, nil
+}
+
+
+type Body struct {
+	x, y, z    float64
+	vx, vy, vz float64
+	mass       float64
+}
+
+// NBodySimulation simulates the gravitational interaction of N bodies.
+func NBodySimulation(args map[string]json.RawMessage) (any, error) {
+	n, err := void.GetInt(args, "n")
+	if err != nil {
+		return nil, err
+	}
+	steps, err := void.GetInt(args, "steps")
+	if err != nil {
+		return nil, err
+	}
+
+	bodies := make([]Body, n)
+	for i := 0; i < n; i++ {
+		fi := float64(i)
+		bodies[i] = Body{
+			x:    fi * 1.5,
+			y:    fi * -2.0,
+			z:    fi * 0.8,
+			vx:   fi * 0.01,
+			vy:   fi * -0.02,
+			vz:   fi * 0.005,
+			mass: (fi + 1.0) * 1000.0,
+		}
+	}
+
+	const dt = 0.01
+
+	for step := 0; step < steps; step++ {
+		for i := 0; i < n; i++ {
+			for j := 0; j < n; j++ {
+				if i == j {
+					continue
+				}
+				dx := bodies[j].x - bodies[i].x
+				dy := bodies[j].y - bodies[i].y
+				dz := bodies[j].z - bodies[i].z
+
+				distanceSq := dx*dx + dy*dy + dz*dz + 1e-9
+				distance := math.Sqrt(distanceSq)
+				mag := dt * bodies[j].mass / (distanceSq * distance)
+
+				bodies[i].vx += dx * mag
+				bodies[i].vy += dy * mag
+				bodies[i].vz += dz * mag
+			}
+		}
+
+		for i := 0; i < n; i++ {
+			bodies[i].x += dt * bodies[i].vx
+			bodies[i].y += dt * bodies[i].vy
+			bodies[i].z += dt * bodies[i].vz
+		}
+	}
+
+	checksum := 0.0
+	for i := 0; i < n; i++ {
+		checksum += bodies[i].x + bodies[i].y + bodies[i].z
+	}
+
+	return checksum, nil
+}
+
 func main() {
 	void.Register("add", Add)
 	void.Register("format_message", FormatMessage)
+	void.Register("count_primes", CountPrimes)
+	void.Register("nbody", NBodySimulation)
 }

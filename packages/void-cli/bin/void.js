@@ -100,6 +100,50 @@ function copyFolderRecursive(src, dest, replacements = {}) {
   }
 }
 
+function copyNonSourceFiles(src, dest, buildOutputDir) {
+  ensureDir(dest);
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    
+    // Prevent copying the build output directory into itself
+    if (srcPath === buildOutputDir || srcPath.startsWith(buildOutputDir + path.sep)) {
+      continue;
+    }
+    
+    // Skip standard build/dev folders
+    if (entry.name === "@void" || 
+        entry.name === "@tgrv" || 
+        entry.name === "target" || 
+        entry.name === ".git" || 
+        entry.name === "node_modules") {
+      continue;
+    }
+    
+    if (entry.isDirectory()) {
+      copyNonSourceFiles(srcPath, destPath, buildOutputDir);
+    } else {
+      const ext = path.extname(entry.name).toLowerCase();
+      const filename = entry.name.toLowerCase();
+      
+      // Exclude Go/Rust/Cargo files and build binaries/configs
+      if (ext === ".go" || 
+          ext === ".rs" || 
+          filename === "cargo.toml" || 
+          filename === "cargo.lock" || 
+          filename === "go.mod" || 
+          filename === "go.sum" || 
+          filename === "void.json" ||
+          filename === "plugin.wasm") {
+        continue;
+      }
+      
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 const args = process.argv.slice(2);
 const command = args[0];
 
@@ -258,6 +302,7 @@ const plugin = await runtime.load(
 export default plugin;
 `;
   fs.writeFileSync(path.join(buildOutputDir, "index.js"), indexJsContent);
+  copyNonSourceFiles(absolutePluginDir, buildOutputDir, buildOutputDir);
   console.log(`${tick} ${colors.green}Successfully completed compilation & packaging!${colors.reset}`);
   return buildOutputDir;
 }

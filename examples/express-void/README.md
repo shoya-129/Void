@@ -25,30 +25,40 @@ Alternatively, run with native Node.js TypeScript stripping:
 npm start
 ```
 
-The server will start on [http://localhost:3000](http://localhost:3000).
+The server will start on [http://localhost:3001](http://localhost:3001).
 
 ### Step 3: Test the Endpoints
 
-#### A. Addition Endpoint (`/add`)
-Delegates the mathematical operation to the Go WebAssembly binary.
+#### A. Prime Counting Endpoint (`/primes`)
+Counts prime numbers up to the specified limit.
 * **Request**:
-  `GET http://localhost:3000/add?a=12&b=30`
+  `GET http://localhost:3001/primes?limit=1000`
 * **Response**:
   ```json
   {
-    "result": 42
+    "result": 168
   }
   ```
 
-#### B. String Formatting Endpoint (`/format`)
-Passes a formatting template string and a value to the WebAssembly plugin, which formats it using Go's `fmt.Sprintf`.
+#### B. SHA-256 Hashing Chain Endpoint (`/hash_chain`)
+Performs a sequential cryptographic chain of SHA-256 hashes.
 * **Request**:
-  `GET http://localhost:3000/format?template=The+answer+is+%25g&value=42`
-  *(Note: `%25g` is the URL-encoded representation of `%g`)*
+  `GET http://localhost:3001/hash_chain?input=test&iterations=100`
 * **Response**:
   ```json
   {
-    "result": "The answer is 42"
+    "result": "72f107f9c8d5d9c222ffc322b7a9561b369cfef75a34bc45b5c7fd877b9b1e0d"
+  }
+  ```
+
+#### C. N-Body Physics Simulation Endpoint (`/nbody`)
+Runs an orbit simulation and returns the system position checksum.
+* **Request**:
+  `GET http://localhost:3001/nbody?n=150&steps=100`
+* **Response**:
+  ```json
+  {
+    "result": 9029315.08596889
   }
   ```
 
@@ -75,16 +85,20 @@ Update your `package.json` to configure the application type as ECMAScript Modul
 }
 ```
 
-### Step 2: Initialize Void
-Use the Void CLI to configure the Void configuration and install the WebAssembly runtime:
+### Step 2: Install Void CLI Globally & Initialize Void
+First, install the Void command line interface globally:
 ```bash
-# Initialize Void configuration (generates void.config.json & installs @tgrv/void-runtime)
-npx @tgrv/void-cli init
+npm install -g @tgrv/void-cli
+```
+
+Initialize Void configuration inside your project (this generates `void.config.json` and installs `@tgrv/void-runtime`):
+```bash
+void init
 ```
 
 Add your desired WebAssembly plugin (e.g. `@tgrv/void-math`):
 ```bash
-npx @tgrv/void-cli add @tgrv/void-math
+void add @tgrv/void-math
 ```
 
 ### Step 3: Install Express and TypeScript
@@ -156,3 +170,36 @@ Start your newly created server:
 ```bash
 npm run dev
 ```
+
+---
+
+## 3. Benchmarks & Real-World Use Cases
+
+The project includes an automated benchmark suite comparing a pure Node.js/V8 server (`src/app.ts`) to a Void WASM-enabled server (`src/server-void.ts`).
+
+### Benchmarked APIs
+
+1. **`/primes?limit=LIMIT`**:
+   * **Algorithm**: Inlined nested loop checking and counting prime numbers up to `limit`.
+   * **NodeJS**: Pure JS code compiled by the V8 JIT.
+   * **Void**: Dynamically loads `plugin.wasm` and calls Go `CountPrimes` function.
+2. **`/hash_chain?input=STRING&iterations=N`**:
+   * **Algorithm**: Cryptographic hash chain running `N` iterations of SHA-256 (each round hex-encodes the hash and passes it to the next hash round).
+   * **NodeJS**: Standard pure JS implementation of SHA-256.
+   * **Void**: Delegates to Go's assembly-optimized standard `crypto/sha256` module running in WebAssembly.
+3. **`/nbody?n=N&steps=STEPS`**:
+   * **Algorithm**: N-body 3D physics orbit simulation running `STEPS` iterations of particle gravitational acceleration math.
+   * **NodeJS**: Pure TS/JS float64 array math.
+   * **Void**: Native compiled Go float64 arithmetic in WASM.
+
+### Performance comparison
+
+Detailed metrics are stored in [benchmark.md](benchmark.md).
+Go WebAssembly is **~4.00x faster** on cryptographic hash chains because WebAssembly natively supports 32-bit unsigned integers (`i32`), skipping JavaScript's double-precision float-to-int conversion penalties on bitwise operations.
+
+### Industrial Real-World Use Cases for Void WASM
+
+* **Serverless / Edge Cryptography**: Implementing secure JWT parsing, hashing checks (Bcrypt/Argon2), or custom ciphers in sandboxed worker environments (like Cloudflare Workers) where native C++ addons are disabled.
+* **Large Data Parsing & Transformation**: Running high-speed lexers, markdown/YAML parsers, HTML compilers, or AST transformers (e.g. SWC, esbuild) directly within Node.js without writing platform-dependent native modules.
+* **Media Processing & Simulations**: Encoding/decoding files (zlib, Brotli, PNG, JPEG), physics simulations for gaming servers, image filtration convolution kernels, or mathematical CAD engines.
+
