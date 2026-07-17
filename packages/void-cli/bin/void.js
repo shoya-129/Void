@@ -99,6 +99,7 @@ ${colors.bold}Usage:${colors.reset}
   ${colors.green}void publish [plugin-path]${colors.reset}    - Build and publish the plugin to npm registry (default: .)
   ${colors.green}void add <plugin-name>${colors.reset}        - Add a plugin from registry/local build into application
   ${colors.green}void remove <plugin-name>${colors.reset}     - Remove a plugin from application and configuration
+  ${colors.green}void update${colors.reset}                   - Update all installed plugins to their latest versions
   ${colors.green}void view <plugin-name>${colors.reset}       - Inspect an installed plugin and list all its exposed functions
 `);
   process.exit(0);
@@ -235,13 +236,28 @@ export default plugin;
   return buildOutputDir;
 }
 
-function runAdd(pluginName, appDir) {
+function parsePackageSpec(spec) {
+  if (spec.startsWith("@")) {
+    const parts = spec.slice(1).split("@");
+    const name = "@" + parts[0];
+    const version = parts[1] || null;
+    return { name, version };
+  } else {
+    const parts = spec.split("@");
+    const name = parts[0];
+    const version = parts[1] || null;
+    return { name, version };
+  }
+}
+
+function runAdd(pluginNameInput, appDir) {
   const configInfo = findConfig(appDir);
   if (!configInfo) {
     console.error(`${cross} ${colors.red}Error: void.config.json not found. Run 'void init' first.${colors.reset}`);
     process.exit(1);
   }
 
+  const { name: pluginName, version: requestedVersion } = parsePackageSpec(pluginNameInput);
   const config = JSON.parse(fs.readFileSync(configInfo.configPath, "utf8"));
   
   // Look up local build directory
@@ -288,19 +304,37 @@ function runAdd(pluginName, appDir) {
   const targetPluginDir = path.join(appDir, "node_modules", pluginName);
   ensureDir(path.dirname(targetPluginDir));
 
+  let resolvedVersion = "1.0.0";
+
   if (localBuildDir) {
     console.log(`${info} Installing local build of '${colors.bold}${pluginName}${colors.reset}' from ${localBuildDir} to ${targetPluginDir}...`);
     if (fs.existsSync(targetPluginDir)) {
       fs.rmSync(targetPluginDir, { recursive: true, force: true });
     }
     copyFolderRecursive(localBuildDir, targetPluginDir);
+
+    try {
+      const localPkgPath = path.join(localBuildDir, "package.json");
+      if (fs.existsSync(localPkgPath)) {
+        const localPkg = JSON.parse(fs.readFileSync(localPkgPath, "utf8"));
+        resolvedVersion = localPkg.version || "1.0.0";
+      }
+    } catch (e) {}
   } else {
-    console.log(`${info} Installing '${colors.bold}${pluginName}${colors.reset}' from NPM registry...`);
-    const npmSuccess = runCommand(`npm install ${pluginName}`, { cwd: appDir });
+    console.log(`${info} Installing '${colors.bold}${pluginNameInput}${colors.reset}' from NPM registry...`);
+    const npmSuccess = runCommand(`npm install ${pluginNameInput}`, { cwd: appDir });
     if (!npmSuccess) {
-      console.error(`${cross} ${colors.red}Error: Failed to install package '${pluginName}' via npm.${colors.reset}`);
+      console.error(`${cross} ${colors.red}Error: Failed to install package '${pluginNameInput}' via npm.${colors.reset}`);
       process.exit(1);
     }
+
+    try {
+      const installedPkgPath = path.join(appDir, "node_modules", pluginName, "package.json");
+      if (fs.existsSync(installedPkgPath)) {
+        const installedPkg = JSON.parse(fs.readFileSync(installedPkgPath, "utf8"));
+        resolvedVersion = installedPkg.version || "1.0.0";
+      }
+    } catch (e) {}
   }
 
   // Update package.json of the application
@@ -308,17 +342,41 @@ function runAdd(pluginName, appDir) {
   if (fs.existsSync(pkgPath)) {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
     pkg.dependencies = pkg.dependencies || {};
-    pkg.dependencies[pluginName] = "1.0.0";
+    pkg.dependencies[pluginName] = `^${resolvedVersion}`;
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
   }
 
   // Update void.config.json
   config.plugins = config.plugins || {};
-  config.plugins[pluginName] = "^1.0.0";
+  config.plugins[pluginName] = `^${resolvedVersion}`;
   fs.writeFileSync(configInfo.configPath, JSON.stringify(config, null, 2));
 
-  console.log(`${tick} ${colors.green}Successfully added '${pluginName}'!${colors.reset}\n`);
+  console.log(`${tick} ${colors.green}Successfully added '${pluginName}' (version ^${resolvedVersion})!${colors.reset}\n`);
 }
+
+function runUpdate(appDir) {
+  const configInfo = findConfig(appDir);
+  if (!configInfo) {
+    console.error(`${cross} ${colors.red}Error: void.config.json not found. Run 'void init' first.${colors.reset}`);
+    process.exit(1);
+  }
+
+  const config = JSON.parse(fs.readFileSync(configInfo.configPath, "utf8"));
+  const plugins = config.plugins || {};
+  const pluginNames = Object.keys(plugins);
+
+  if (pluginNames.length === 0) {
+    console.log(`${info} No plugins configured to update.`);
+    return;
+  }
+
+  console.log(`\n${info} Updating plugins to latest versions...`);
+  for (const name of pluginNames) {
+    runAdd(`${name}@latest`, appDir);
+  }
+  console.log(`${tick} ${colors.green}All plugins updated successfully!${colors.reset}\n`);
+}
+
 
 async function main() {
   switch (command) {
@@ -532,6 +590,11 @@ try {
       }
 
       console.log(`${tick} ${colors.green}Successfully removed '${pluginName}'!${colors.reset}\n`);
+      break;
+    }
+
+    case "update": {
+      runUpdate(process.cwd());
       break;
     }
 
