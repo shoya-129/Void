@@ -7,7 +7,7 @@ The official Go SDK for building high-performance WebAssembly plugins on top of 
 Add this dependency to your plugin's `go.mod`:
 
 ```go
-require github.com/shoya-129/Void/sdk/void-sdk-go v1.0.1
+require github.com/shoya-129/Void/sdk/void-sdk-go v1.0.2
 ```
 
 ## Quick Start
