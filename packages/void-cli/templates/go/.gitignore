@@ -1,3 +1,6 @@
+# Go build artifacts
+*.sum
+
 # WebAssembly binaries
 *.wasm
 

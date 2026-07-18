@@ -7,6 +7,9 @@ build/
 .cache/
 compile_commands.json
 
+# Go build artifacts
+*.sum
+
 # WebAssembly binaries
 *.wasm
 
