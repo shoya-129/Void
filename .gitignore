@@ -2,6 +2,11 @@
 target/
 Cargo.lock
 
+# C++ build artifacts
+build/
+.cache/
+compile_commands.json
+
 # WebAssembly binaries
 *.wasm
 
@@ -16,3 +21,4 @@ node_modules/
 # System and logs
 .DS_Store
 *.log
+

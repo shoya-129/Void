@@ -14,3 +14,4 @@ node_modules/
 # System and logs
 .DS_Store
 *.log
+compile_commands.json

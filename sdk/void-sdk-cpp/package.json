@@ -1,8 +1,11 @@
 {
   "name": "@tgrv/void-sdk-cpp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "C++ SDK for the Void WASM plugin framework",
   "license": "ISC",
+  "scripts": {
+    "cpp-init": "cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && node -e \"const fs=require('fs'); if (fs.existsSync('build/compile_commands.json')) fs.copyFileSync('build/compile_commands.json', 'compile_commands.json')\""
+  },
   "files": [
     "include",
     "src",

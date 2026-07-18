@@ -350,8 +350,8 @@ function runBuild(pluginPathArg) {
   }
   // C++ plugin compilation
   else if (pluginType === "cpp") {
-    console.log(`${info} Running: ${colors.blue}emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release${colors.reset}`);
-    const configSuccess = runCommand("emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release", { cwd: absolutePluginDir });
+    console.log(`${info} Running: ${colors.blue}emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON${colors.reset}`);
+    const configSuccess = runCommand("emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON", { cwd: absolutePluginDir });
     if (!configSuccess) {
       console.error(`${cross} ${colors.red}Emscripten CMake configuration failed. Make sure emscripten SDK is active.${colors.reset}`);
       process.exit(1);
@@ -386,6 +386,17 @@ function runBuild(pluginPathArg) {
       process.exit(1);
     }
     builtWasmPath = wasmFile;
+
+    // Copy compile_commands.json to plugin root to enable editor autocomplete/intellisense
+    const compileCommandsSrc = path.join(absolutePluginDir, "build", "compile_commands.json");
+    const compileCommandsDest = path.join(absolutePluginDir, "compile_commands.json");
+    if (fs.existsSync(compileCommandsSrc)) {
+      try {
+        fs.copyFileSync(compileCommandsSrc, compileCommandsDest);
+      } catch (e) {
+        // Ignore
+      }
+    }
   } else {
     console.error(`${cross} ${colors.red}Unsupported plugin type: '${pluginType}' in void.json${colors.reset}`);
     process.exit(1);
