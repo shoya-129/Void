@@ -100,12 +100,38 @@ To test your newly created plugin inside an application:
 
 ---
 
-## 3. Architecture details
+## 3. Architecture
 
-Void replaces standard signature files (`void.json` signatures) with dynamic ES Proxies and reflection:
-1. **Unified JSON FFI**: Arguments are serialized to JSON strings and passed to a single entrypoint `void_invoke`.
-2. **Memory Safety**: Go/Rust SDKs manage heap allocation, pointer pinning, and free mechanisms.
-3. **Dynamic Reflection**: The JS host loader reads `__list_functions__` on boot to bind ES Proxy interfaces dynamically.
+Void is built around three core concepts: a unified invocation interface, language-specific SDKs, and runtime reflection. Plugin authors write native code as usual—the SDKs and runtime handle the rest.
+
+### 1. Unified Invocation
+
+Every exported function is invoked through a single entrypoint, `void_invoke`.
+
+Internally, the runtime serializes function arguments into JSON, passes them to the plugin, and deserializes the returned value. This transport layer is completely transparent to plugin authors, who continue writing normal Rust or Go functions.
+
+### 2. Automatic Memory Management
+
+The Rust and Go SDKs abstract WebAssembly memory management by automatically handling:
+
+- Heap allocation
+- Pointer pinning
+- Buffer ownership
+- Memory deallocation
+
+Plugin authors never need to manually manage pointers or exchange raw memory with the JavaScript host.
+
+### 3. Runtime Reflection
+
+Instead of requiring manually maintained signature files (such as `void.json`), each plugin exposes reflection metadata through a built-in `__list_functions__` export.
+
+When a plugin is loaded, the Void runtime:
+
+1. Discovers all exported functions.
+2. Reads their metadata.
+3. Dynamically creates JavaScript APIs using ES Proxies.
+
+This allows plugins to be consumed without generating bindings or maintaining interface definitions manually.
 
 ---
 
