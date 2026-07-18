@@ -172,9 +172,41 @@ func NBodySimulation(args map[string]json.RawMessage) (any, error) {
 	return checksum, nil
 }
 
+// GetMemoryStats returns memory statistics from the Void Go SDK.
+func GetMemoryStats(args map[string]json.RawMessage) (any, error) {
+	return void.GetMemoryStats(), nil
+}
+
+// TestMemPin manually pins a string on the Go heap map.
+func TestMemPin(args map[string]json.RawMessage) (any, error) {
+	data, err := void.GetString(args, "data")
+	if err != nil {
+		return nil, err
+	}
+	ptr := void.PinMemory([]byte(data))
+	return map[string]any{
+		"ptr":  ptr,
+		"size": len(data),
+	}, nil
+}
+
+// TestMemUnpin releases a previously pinned slice from the Go heap map.
+func TestMemUnpin(args map[string]json.RawMessage) (any, error) {
+	ptr, err := void.GetInt(args, "ptr")
+	if err != nil {
+		return nil, err
+	}
+	void.UnpinMemory(uint32(ptr))
+	return "success", nil
+}
+
 func main() {
 	void.Register("add", Add)
 	void.Register("format_message", FormatMessage)
 	void.Register("count_primes", CountPrimes)
 	void.Register("nbody", NBodySimulation)
+	void.Register("get_memory_stats", GetMemoryStats)
+	void.Register("test_mem_pin", TestMemPin)
+	void.Register("test_mem_unpin", TestMemUnpin)
 }
+
