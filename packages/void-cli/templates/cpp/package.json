@@ -1,0 +1,14 @@
+{
+  "name": "void-cpp-plugin",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "@tgrv/void-runtime": "^1.0.0",
+    "@tgrv/void-sdk-cpp": "^1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "types": "types.d.ts"
+}

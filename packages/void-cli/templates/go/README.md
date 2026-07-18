@@ -48,5 +48,5 @@ Your plugin configuration is defined in `void.json`. Here are the available fiel
 - **`type`**: The compilation target language. Set to `"go"`.
 - **`buildDir`**: The target directory where compilation and wrapping assets are generated (e.g. `@void/my-plugin`).
 - **`types`**: Path to the TypeScript declaration file (e.g. `"types.d.ts"`). During the build process, the CLI validates its existence, copies it to the build output, and automatically sets the `"types"` entry in `package.json` for autocomplete and editor support.
-- **`export`**: The name of the JavaScript variable used to load the WASM binary, which is also the default export name (e.g. `"myPlugin"`).
+- **`export`**: The name of the JavaScript variable used to load the WASM binary, which is also the default export name (e.g. `"myPlugin"`). **Note:** Ensure you use a JS-friendly name (e.g. alphanumeric/camelCase) to ensure the generated JS code does not contain syntax errors. The CLI will automatically sanitize special characters (like `-`, `_`, or `@scope/`) into camelCase/JS-friendly format for the variable and the generated WASM binary name.
 - **`files`**: An array of glob patterns of non-source files (such as `*.md` or `*.d.ts`) to copy from the plugin root into the build output folder.

@@ -7,7 +7,7 @@ The official Go SDK for building high-performance WebAssembly plugins on top of 
 Add this dependency to your plugin's `go.mod`:
 
 ```go
-require github.com/tgrv/void-sdk-go v1.0.0
+require github.com/shoya-129/Void/sdk/void-sdk-go v1.0.0
 ```
 
 ## Quick Start
@@ -19,7 +19,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/tgrv/void-sdk-go"
+	"github.com/shoya-129/Void/sdk/void-sdk-go"
 )
 
 func Add(args map[string]json.RawMessage) (any, error) {

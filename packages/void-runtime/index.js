@@ -114,6 +114,7 @@ export class VoidRuntime {
     }
 
     importObject.env = importObject.env || {};
+    importObject.env.emscripten_notify_memory_growth = (index) => {};
 
     const instance = await WebAssembly.instantiate(wasmModule, importObject);
 

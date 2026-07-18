@@ -1,3 +1,6 @@
+# C++ build artifacts
+build/
+
 # WebAssembly binaries
 *.wasm
 

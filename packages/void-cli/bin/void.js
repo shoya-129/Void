@@ -72,6 +72,14 @@ function ensureDir(dir) {
   }
 }
 
+function toJsFriendlyName(name) {
+  let clean = name.includes('/') ? name.split('/').pop() : name;
+  clean = clean.replace(/^[^a-zA-Z_$]+|[^a-zA-Z0-9_$]+$/g, '');
+  return clean.replace(/[-_]([a-z0-9])/gi, (match, group1) => {
+    return group1.toUpperCase();
+  });
+}
+
 function copyFolderRecursive(src, dest, replacements = {}) {
   ensureDir(dest);
   const entries = fs.readdirSync(src, { withFileTypes: true });
@@ -100,44 +108,44 @@ function copyFolderRecursive(src, dest, replacements = {}) {
   }
 }
 
+function matchGlob(filePath, pattern) {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  const normalizedPattern = pattern.replace(/\\/g, "/");
+
+  if (normalizedPath === normalizedPattern) {
+    return true;
+  }
+  const prefix = normalizedPattern.endsWith('/') ? normalizedPattern : normalizedPattern + '/';
+  if (normalizedPath.startsWith(prefix)) {
+    return true;
+  }
+
+  const globToRegex = (glob) => {
+    return '^' + glob
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*\*/g, '___DOUBLE_STAR___')
+      .replace(/\*/g, '___SINGLE_STAR___')
+      .replace(/\?/g, '___QUESTION___')
+      .replace(/___DOUBLE_STAR___/g, '.*')
+      .replace(/___SINGLE_STAR___/g, '[^/]*')
+      .replace(/___QUESTION___/g, '.') + '$';
+  };
+
+  const regex = new RegExp(globToRegex(normalizedPattern));
+  
+  if (!normalizedPattern.includes('/')) {
+    const baseName = path.basename(normalizedPath);
+    if (regex.test(baseName)) {
+      return true;
+    }
+  }
+
+  return regex.test(normalizedPath);
+}
+
 function copyNonSourceFiles(src, dest, buildOutputDir, filesConfig, wasmFilename) {
   if (!filesConfig || !Array.isArray(filesConfig) || filesConfig.length === 0) {
     return;
-  }
-
-  function matchGlob(filePath, pattern) {
-    const normalizedPath = filePath.replace(/\\/g, "/");
-    const normalizedPattern = pattern.replace(/\\/g, "/");
-
-    if (normalizedPath === normalizedPattern) {
-      return true;
-    }
-    const prefix = normalizedPattern.endsWith('/') ? normalizedPattern : normalizedPattern + '/';
-    if (normalizedPath.startsWith(prefix)) {
-      return true;
-    }
-
-    const globToRegex = (glob) => {
-      return '^' + glob
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*\*/g, '___DOUBLE_STAR___')
-        .replace(/\*/g, '___SINGLE_STAR___')
-        .replace(/\?/g, '___QUESTION___')
-        .replace(/___DOUBLE_STAR___/g, '.*')
-        .replace(/___SINGLE_STAR___/g, '[^/]*')
-        .replace(/___QUESTION___/g, '.') + '$';
-    };
-
-    const regex = new RegExp(globToRegex(normalizedPattern));
-    
-    if (!normalizedPattern.includes('/')) {
-      const baseName = path.basename(normalizedPath);
-      if (regex.test(baseName)) {
-        return true;
-      }
-    }
-
-    return regex.test(normalizedPath);
   }
 
   function traverse(currentDir) {
@@ -178,6 +186,62 @@ function copyNonSourceFiles(src, dest, buildOutputDir, filesConfig, wasmFilename
   traverse(src);
 }
 
+function cleanupOutputDirectory(pluginDir, buildOutputDir, filesConfig, wasmFilename, typesFilename) {
+  if (!fs.existsSync(buildOutputDir)) return;
+
+  function traverse(currentDir) {
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+      const relativePath = path.relative(buildOutputDir, fullPath);
+
+      if (entry.isDirectory()) {
+        traverse(fullPath);
+        // Clean up empty directories
+        if (fs.readdirSync(fullPath).length === 0) {
+          try {
+            fs.rmdirSync(fullPath);
+          } catch (e) {}
+        }
+      } else {
+        // Skip core files
+        if (entry.name === "index.js" || 
+            entry.name === "package.json" || 
+            entry.name === wasmFilename || 
+            (typesFilename && entry.name === typesFilename)) {
+          continue;
+        }
+
+        // Check if the file still exists in the source plugin root
+        const sourcePath = path.join(pluginDir, relativePath);
+        if (!fs.existsSync(sourcePath)) {
+          try {
+            fs.unlinkSync(fullPath);
+          } catch (e) {}
+          continue;
+        }
+
+        // Check if the file still matches the files configuration
+        if (!filesConfig || !Array.isArray(filesConfig) || filesConfig.length === 0) {
+          try {
+            fs.unlinkSync(fullPath);
+          } catch (e) {}
+          continue;
+        }
+
+        const matches = filesConfig.some(pattern => matchGlob(relativePath, pattern));
+        if (!matches) {
+          try {
+            fs.unlinkSync(fullPath);
+          } catch (e) {}
+        }
+      }
+    }
+  }
+
+  traverse(buildOutputDir);
+}
+
 const args = process.argv.slice(2);
 const command = args[0];
 
@@ -198,7 +262,7 @@ ${colors.bold}Usage:${colors.reset}
   process.exit(0);
 }
 
-// Build core compilation wrapper function to resolve output directory using void.json manifest
+// Build core compilation wrapper
 function runBuild(pluginPathArg) {
   const absolutePluginDir = path.resolve(process.cwd(), pluginPathArg);
   if (!fs.existsSync(absolutePluginDir)) {
@@ -238,7 +302,8 @@ function runBuild(pluginPathArg) {
   const pluginType = manifest.type;
   const buildDir = manifest.buildDir;
   const buildOutputDir = path.join(absolutePluginDir, buildDir);
-  const exportName = manifest.export || "plugin";
+  const rawExport = manifest.export || "plugin";
+  const exportName = toJsFriendlyName(rawExport);
   const wasmFilename = `${exportName}.wasm`;
 
   if (pluginType === "sdk") {
@@ -282,6 +347,45 @@ function runBuild(pluginPathArg) {
       process.exit(1);
     }
     builtWasmPath = outputWasm;
+  }
+  // C++ plugin compilation
+  else if (pluginType === "cpp") {
+    console.log(`${info} Running: ${colors.blue}emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release${colors.reset}`);
+    const configSuccess = runCommand("emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release", { cwd: absolutePluginDir });
+    if (!configSuccess) {
+      console.error(`${cross} ${colors.red}Emscripten CMake configuration failed. Make sure emscripten SDK is active.${colors.reset}`);
+      process.exit(1);
+    }
+
+    console.log(`${info} Running: ${colors.blue}cmake --build build --config Release${colors.reset}`);
+    const buildSuccess = runCommand("cmake --build build --config Release", { cwd: absolutePluginDir });
+    if (!buildSuccess) {
+      console.error(`${cross} ${colors.red}C++ compilation failed.${colors.reset}`);
+      process.exit(1);
+    }
+
+    const buildPath = path.join(absolutePluginDir, "build");
+    function findWasm(dir) {
+      if (!fs.existsSync(dir)) return null;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          const found = findWasm(fullPath);
+          if (found) return found;
+        } else if (entry.name.endsWith(".wasm")) {
+          return fullPath;
+        }
+      }
+      return null;
+    }
+
+    const wasmFile = findWasm(buildPath);
+    if (!wasmFile) {
+      console.error(`${cross} ${colors.red}Could not find compiled .wasm file in C++ build directory${colors.reset}`);
+      process.exit(1);
+    }
+    builtWasmPath = wasmFile;
   } else {
     console.error(`${cross} ${colors.red}Unsupported plugin type: '${pluginType}' in void.json${colors.reset}`);
     process.exit(1);
@@ -289,6 +393,18 @@ function runBuild(pluginPathArg) {
 
   console.log(`${info} Placing build output to local folder at ${colors.bold}${buildOutputDir}${colors.reset}...`);
   ensureDir(buildOutputDir);
+
+  // Remove past builds' .wasm files from the build output directory
+  if (fs.existsSync(buildOutputDir)) {
+    const files = fs.readdirSync(buildOutputDir);
+    for (const file of files) {
+      if (file.endsWith(".wasm")) {
+        try {
+          fs.unlinkSync(path.join(buildOutputDir, file));
+        } catch (e) {}
+      }
+    }
+  }
 
   // Copy WASM
   fs.copyFileSync(builtWasmPath, path.join(buildOutputDir, wasmFilename));
@@ -311,7 +427,8 @@ function runBuild(pluginPathArg) {
       type: "module",
       main: "index.js",
       dependencies: {
-        "@tgrv/void-runtime": "^1.0.0",
+        "@tgrv/void-runtime": "latest",
+        ...(manifest.dependencies || {})
       },
       publishConfig: {
         access: "public"
@@ -332,6 +449,13 @@ function runBuild(pluginPathArg) {
       }
       if (manifest.types && existingPkg.types !== manifest.types) {
         existingPkg.types = manifest.types;
+        changed = true;
+      }
+      if (manifest.dependencies) {
+        existingPkg.dependencies = {
+          ...existingPkg.dependencies,
+          ...manifest.dependencies
+        };
         changed = true;
       }
       if (changed) {
@@ -366,6 +490,7 @@ export default ${exportName};
 `;
   fs.writeFileSync(path.join(buildOutputDir, "index.js"), indexJsContent);
   copyNonSourceFiles(absolutePluginDir, buildOutputDir, buildOutputDir, manifest.files, wasmFilename);
+  cleanupOutputDirectory(absolutePluginDir, buildOutputDir, manifest.files, wasmFilename, manifest.types);
   console.log(`${tick} ${colors.green}Successfully completed compilation & packaging!${colors.reset}`);
   return buildOutputDir;
 }
@@ -645,13 +770,13 @@ try {
       // Prompt for language
       const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
       const rawLanguage = await new Promise((resolve) => {
-        rl.question(`${info} Select plugin language (go/rust) [default: rust]: `, (ans) => {
+        rl.question(`${info} Select plugin language (go/rust/cpp) [default: rust]: `, (ans) => {
           resolve(ans.trim().toLowerCase() || "rust");
         });
       });
       rl.close();
 
-      if (rawLanguage !== "rust" && rawLanguage !== "go") {
+      if (rawLanguage !== "rust" && rawLanguage !== "go" && rawLanguage !== "cpp") {
         console.error(`${cross} ${colors.red}Error: Unsupported language: ${rawLanguage}${colors.reset}`);
         process.exit(1);
       }
@@ -673,7 +798,7 @@ try {
           "\\{\\{type\\}\\}": "rust",
           "\\{\\{workspace_dir\\}\\}": workspaceDir.replace(/\\/g, "/"),
         });
-      } else {
+      } else if (rawLanguage === "go") {
         // Verify Go
         const goCheck = runCommand("go version");
         if (!goCheck) {
@@ -688,6 +813,23 @@ try {
         copyFolderRecursive(templateSrc, targetDir, {
           "\\{\\{name\\}\\}": folderName,
           "\\{\\{type\\}\\}": "go",
+          "\\{\\{workspace_dir\\}\\}": workspaceDir.replace(/\\/g, "/"),
+        });
+      } else {
+        // Verify CMake
+        const cmakeCheck = runCommand("cmake --version");
+        if (!cmakeCheck) {
+          console.error(`\n${cross} ${colors.red}Error: 'cmake' is not installed on your machine.${colors.reset}`);
+          console.error(`${colors.yellow}Please install CMake from https://cmake.org/ first.${colors.reset}\n`);
+          process.exit(1);
+        }
+
+        console.log(`${info} Creating C++ plugin template at ${colors.bold}${targetDir}${colors.reset}...`);
+        ensureDir(targetDir);
+        const templateSrc = path.join(cliRoot, "templates", "cpp");
+        copyFolderRecursive(templateSrc, targetDir, {
+          "\\{\\{name\\}\\}": folderName,
+          "\\{\\{type\\}\\}": "cpp",
           "\\{\\{workspace_dir\\}\\}": workspaceDir.replace(/\\/g, "/"),
         });
       }
