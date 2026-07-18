@@ -11,6 +11,7 @@ Thank you for your interest in contributing to Void! This project aims to simpli
   rustup target add wasm32-unknown-unknown
   ```
 - **Go**: 1.24+ with WebAssembly compilation targets.
+- **C++ & CMake**: CMake and the Emscripten SDK (`emsdk`) if you are working on the C++ SDK or templates.
 
 ### Local Installation
 Clone the repository and install workspace dependencies:
@@ -28,12 +29,34 @@ npm install
 All public functions, structures, and helper macros must be documented using standard language comments:
 - **Rust**: Use `///` with example blocks.
 - **Go**: Write clear, descriptive comments prefixing package exports.
+- **C++**: Use Doxygen/Javadoc style comments (`/** ... */`) in header files to enable editor hovers and documentation.
 
 ### 2. Manifest Schema
 Always create a `void.json` manifest file at the root of your plugins. The manifest must specify:
 - `name`: Package npm identifier (e.g. `@void/my-plugin`).
-- `type`: Language compiler mapping (`rust` or `go`).
+- `type`: Language compiler mapping (`rust`, `go`, or `cpp`).
 - `buildDir`: Directory structure where build artifacts are nested.
+
+---
+
+## Language-Specific Contributions
+
+You do not need to be an expert in all languages to contribute to Void! You can focus on the language environment you are most comfortable with:
+
+### 🦀 Rust Contributors
+- **Focus Areas:** `sdk/void-sdk-rust` and `packages/void-cli/templates/rust`
+- **Local Setup:** Run `rustup target add wasm32-unknown-unknown`.
+- **Contribution Scope:** Optimize FFI bounds, implement RAII structures, improve template boilerplates, and build Rust plugins.
+
+### 🐹 Go Contributors
+- **Focus Areas:** `sdk/void-sdk-go` and `packages/void-cli/templates/go`
+- **Local Setup:** Ensure Go 1.24+ is installed.
+- **Contribution Scope:** Manage memory pinning, optimize WASM imports, update templates, and write Go benchmark plugins.
+
+### ⚡ C++ Contributors
+- **Focus Areas:** `sdk/void-sdk-cpp` and `packages/void-cli/templates/cpp`
+- **Local Setup:** Install CMake and `emsdk`. Run `npm run cpp-init` in `sdk/void-sdk-cpp` to initialize autocompletion.
+- **Contribution Scope:** Enhance JSON conversion helpers, optimize CMake link options, write example plugins, and develop C++ templates.
 
 ---
 

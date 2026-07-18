@@ -1,6 +1,6 @@
 {
   "name": "@tgrv/void-sdk-cpp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "C++ SDK for the Void WASM plugin framework",
   "license": "ISC",
   "scripts": {

@@ -8,8 +8,54 @@ use std::sync::Mutex;
 use std::sync::OnceLock;
 use std::os::raw::c_char;
 use std::ffi::{CStr, CString};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub use serde_json::Value;
+
+static ACTIVE_ALLOCS: AtomicUsize = AtomicUsize::new(0);
+static TOTAL_ALLOCATED_BYTES: AtomicUsize = AtomicUsize::new(0);
+
+/// Heap allocation statistics representing active FFI allocations inside the Rust SDK.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MemoryStats {
+    pub allocated_objects: usize,
+    pub total_bytes_pinned: u64,
+}
+
+/// Retrieves active memory statistics for checking leaks and diagnostics.
+pub fn get_memory_stats() -> MemoryStats {
+    MemoryStats {
+        allocated_objects: ACTIVE_ALLOCS.load(Ordering::SeqCst),
+        total_bytes_pinned: TOTAL_ALLOCATED_BYTES.load(Ordering::SeqCst) as u64,
+    }
+}
+
+/// Manually allocates and pins raw memory layout on the heap.
+/// Note: You MUST free it using unpin_memory to prevent memory leaks.
+pub unsafe fn pin_memory(data: &[u8]) -> *mut u8 {
+    if data.is_empty() {
+        return std::ptr::null_mut();
+    }
+    let size = data.len();
+    let layout = std::alloc::Layout::from_size_align(size, 1).unwrap();
+    let ptr = std::alloc::alloc(layout);
+    if !ptr.is_null() {
+        std::ptr::copy_nonoverlapping(data.as_ptr(), ptr, size);
+        ACTIVE_ALLOCS.fetch_add(1, Ordering::SeqCst);
+        TOTAL_ALLOCATED_BYTES.fetch_add(size, Ordering::SeqCst);
+    }
+    ptr
+}
+
+/// Unpins and deallocates a manually pinned raw memory block.
+pub unsafe fn unpin_memory(ptr: *mut u8, size: usize) {
+    if !ptr.is_null() {
+        let layout = std::alloc::Layout::from_size_align(size, 1).unwrap();
+        std::alloc::dealloc(ptr, layout);
+        ACTIVE_ALLOCS.fetch_sub(1, Ordering::SeqCst);
+        TOTAL_ALLOCATED_BYTES.fetch_sub(size, Ordering::SeqCst);
+    }
+}
 
 /// Registry type mapping function name to a function pointer.
 /// Developers write handlers matching this signature.
@@ -45,15 +91,24 @@ pub fn register(name: &str, func: NativeFn) {
 #[no_mangle]
 pub unsafe extern "C" fn void_malloc(size: usize) -> *mut u8 {
     let layout = std::alloc::Layout::from_size_align(size, 1).unwrap();
-    std::alloc::alloc(layout)
+    let ptr = std::alloc::alloc(layout);
+    if !ptr.is_null() {
+        ACTIVE_ALLOCS.fetch_add(1, Ordering::SeqCst);
+        TOTAL_ALLOCATED_BYTES.fetch_add(size, Ordering::SeqCst);
+    }
+    ptr
 }
 
 /// Frees allocated memory blocks on the WebAssembly heap.
 /// This is called internally by the Javascript Host to clean arguments.
 #[no_mangle]
 pub unsafe extern "C" fn void_free(ptr: *mut u8, size: usize) {
-    let layout = std::alloc::Layout::from_size_align(size, 1).unwrap();
-    std::alloc::dealloc(ptr, layout)
+    if !ptr.is_null() {
+        let layout = std::alloc::Layout::from_size_align(size, 1).unwrap();
+        std::alloc::dealloc(ptr, layout);
+        ACTIVE_ALLOCS.fetch_sub(1, Ordering::SeqCst);
+        TOTAL_ALLOCATED_BYTES.fetch_sub(size, Ordering::SeqCst);
+    }
 }
 
 extern "C" {
@@ -136,7 +191,10 @@ pub extern "C" fn void_invoke(input: *const c_char) -> *mut c_char {
 #[no_mangle]
 pub unsafe extern "C" fn void_free_string(ptr: *mut c_char) {
     if !ptr.is_null() {
-        let _ = CString::from_raw(ptr);
+        let c_str = CString::from_raw(ptr);
+        let size = c_str.as_bytes_with_nul().len();
+        ACTIVE_ALLOCS.fetch_sub(1, Ordering::SeqCst);
+        TOTAL_ALLOCATED_BYTES.fetch_sub(size, Ordering::SeqCst);
     }
 }
 
@@ -146,7 +204,11 @@ fn to_c_string_ok(val: &serde_json::Value) -> *mut c_char {
         "value": val
     });
     let s = serde_json::to_string(&response).unwrap();
-    CString::new(s).unwrap().into_raw()
+    let c_str = CString::new(s).unwrap();
+    let size = c_str.as_bytes_with_nul().len();
+    ACTIVE_ALLOCS.fetch_add(1, Ordering::SeqCst);
+    TOTAL_ALLOCATED_BYTES.fetch_add(size, Ordering::SeqCst);
+    c_str.into_raw()
 }
 
 fn to_c_string_err(err_msg: &str) -> *mut c_char {
@@ -155,7 +217,11 @@ fn to_c_string_err(err_msg: &str) -> *mut c_char {
         "error": err_msg
     });
     let s = serde_json::to_string(&response).unwrap();
-    CString::new(s).unwrap().into_raw()
+    let c_str = CString::new(s).unwrap();
+    let size = c_str.as_bytes_with_nul().len();
+    ACTIVE_ALLOCS.fetch_add(1, Ordering::SeqCst);
+    TOTAL_ALLOCATED_BYTES.fetch_add(size, Ordering::SeqCst);
+    c_str.into_raw()
 }
 
 /// Extracts a string parameter value from the arguments map.

@@ -2,6 +2,13 @@
 #include <cstring>
 #include <mutex>
 #include <iostream>
+#include <stdexcept>
+
+namespace {
+    static size_t active_allocs = 0;
+    static size_t total_allocated_bytes = 0;
+    static std::mutex alloc_mutex;
+}
 
 namespace void_sdk {
 
@@ -118,6 +125,35 @@ namespace void_sdk {
         return res;
     }
 
+    MemoryStats get_memory_stats() {
+        std::lock_guard<std::mutex> lock(alloc_mutex);
+        return MemoryStats{
+            static_cast<int>(active_allocs),
+            static_cast<int64_t>(total_allocated_bytes)
+        };
+    }
+
+    void* pin_memory(const void* data, size_t size) {
+        if (size == 0) return nullptr;
+        void* ptr = std::malloc(size);
+        if (ptr) {
+            std::memcpy(ptr, data, size);
+            std::lock_guard<std::mutex> lock(alloc_mutex);
+            active_allocs++;
+            total_allocated_bytes += size;
+        }
+        return ptr;
+    }
+
+    void unpin_memory(void* ptr, size_t size) {
+        if (ptr) {
+            std::free(ptr);
+            std::lock_guard<std::mutex> lock(alloc_mutex);
+            if (active_allocs > 0) active_allocs--;
+            if (total_allocated_bytes >= size) total_allocated_bytes -= size;
+        }
+    }
+
 } // namespace void_sdk
 
 extern "C" {
@@ -135,15 +171,32 @@ extern "C" {
 
     EMSCRIPTEN_KEEPALIVE uint8_t* void_malloc(size_t size) {
         if (size == 0) return nullptr;
-        return static_cast<uint8_t*>(std::malloc(size));
+        uint8_t* ptr = static_cast<uint8_t*>(std::malloc(size));
+        if (ptr) {
+            std::lock_guard<std::mutex> lock(alloc_mutex);
+            active_allocs++;
+            total_allocated_bytes += size;
+        }
+        return ptr;
     }
 
     EMSCRIPTEN_KEEPALIVE void void_free(uint8_t* ptr, size_t size) {
-        if (ptr) std::free(ptr);
+        if (ptr) {
+            std::free(ptr);
+            std::lock_guard<std::mutex> lock(alloc_mutex);
+            if (active_allocs > 0) active_allocs--;
+            if (total_allocated_bytes >= size) total_allocated_bytes -= size;
+        }
     }
 
     EMSCRIPTEN_KEEPALIVE void void_free_string(char* ptr) {
-        if (ptr) std::free(ptr);
+        if (ptr) {
+            size_t size = std::strlen(ptr) + 1;
+            std::free(ptr);
+            std::lock_guard<std::mutex> lock(alloc_mutex);
+            if (active_allocs > 0) active_allocs--;
+            if (total_allocated_bytes >= size) total_allocated_bytes -= size;
+        }
     }
 
     EMSCRIPTEN_KEEPALIVE char* void_invoke(const char* input) {

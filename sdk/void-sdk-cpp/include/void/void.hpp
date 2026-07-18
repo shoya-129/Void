@@ -88,6 +88,30 @@ namespace void_sdk {
      */
     void get_null(const ArgsMap& m, const std::string& key);
 
+    /**
+     * @brief Heap allocation statistics representing active allocations inside the C++ SDK.
+     */
+    struct MemoryStats {
+        int allocated_objects;     ///< Number of active allocations pinned in memory.
+        int64_t total_bytes_pinned; ///< Total bytes across all active allocations.
+    };
+
+    /**
+     * @brief Retrieves active memory statistics for checking leaks and diagnostics.
+     */
+    MemoryStats get_memory_stats();
+
+    /**
+     * @brief Allocates and pins raw memory manually for custom FFI transfers.
+     * Note: You MUST free it using unpin_memory to prevent memory leaks.
+     */
+    void* pin_memory(const void* data, size_t size);
+
+    /**
+     * @brief Unpins and frees a manually pinned raw memory block.
+     */
+    void unpin_memory(void* ptr, size_t size);
+
 } // namespace void_sdk
 
 /**

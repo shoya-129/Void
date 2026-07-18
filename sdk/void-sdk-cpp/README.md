@@ -29,6 +29,28 @@ void init_handlers() {
 VOID_PLUGIN(init_handlers);
 ```
 
+## 🧠 Memory Management & Safety API
+
+The SDK automatically tracks all dynamic memory allocations made through FFI transitions. You can monitor heap health or manually pin buffers using the following API calls:
+
+### Inspect Memory Statistics
+Check active allocation counts and total bytes currently pinned on the heap:
+```cpp
+void_sdk::MemoryStats stats = void_sdk::get_memory_stats();
+// stats.allocated_objects (int)
+// stats.total_bytes_pinned (int64_t)
+```
+
+### Manual Pinning Helpers
+For manually allocating, copying, and tracking raw memory buffers outside standard plugin routing:
+```cpp
+// Pin a memory block and get its pointer (copied and tracked)
+void* ptr = void_sdk::pin_memory(myBufferData, bufferSize);
+
+// Unpin and release the block once finished to prevent leaks
+void_sdk::unpin_memory(ptr, bufferSize);
+```
+
 ## ⚙️ Compiling for WebAssembly
 
 C++ plugins are built using the **Emscripten** compiler (`em++`). Ensure the Emscripten SDK (`emsdk`) is active:

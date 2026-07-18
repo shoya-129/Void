@@ -12,18 +12,20 @@ Its goal is to make compiling, running, and publishing a Rust, Go, C, or C++ lib
 void/
 ├── sdk/
 │   ├── void-sdk-rust/    # Rust FFI wrapper SDK
-│   └── void-sdk-go/      # Go memory-pinning SDK
+│   ├── void-sdk-go/      # Go memory-pinning SDK
+│   └── void-sdk-cpp/     # C++ SDK (memory, registration, JSON mapping)
 ├── packages/
 │   ├── void-cli/         # Developer command line interface
 │   │       ├── templates/
 │   │           ├── rust/             # Starter boilerplate for Rust plugins
-│   │           └── go/               # Starter boilerplate for Go plugins
+│   │           ├── go/               # Starter boilerplate for Go plugins
+│   │           └── cpp/              # Starter boilerplate for C++ plugins
 │   └── void-runtime/     # Dynamic JS reflection runtime loader
 ├── plugins/
 │   └── math/             # Example Go math plugin
 └── README.md             # This documentation
 ```
-For detailed instructions on starter boilerplates, read the [Go Plugin README](packages/void-cli/templates/go/README.md) and [Rust Plugin README](packages/void-cli/templates/rust/README.md).
+For detailed instructions on starter boilerplates, read the [Go Plugin README](packages/void-cli/templates/go/README.md), [Rust Plugin README](packages/void-cli/templates/rust/README.md), and [C++ Plugin README](packages/void-cli/templates/cpp/README.md).
 
 ---
 
@@ -53,6 +55,7 @@ void create my-plugin
 Refer to the starter templates' instructions to begin coding:
 - [Go Plugin Developer Guide](packages/void-cli/templates/go/README.md)
 - [Rust Plugin Developer Guide](packages/void-cli/templates/rust/README.md)
+- [C++ Plugin Developer Guide](packages/void-cli/templates/cpp/README.md)
 
 ### Compile & Build the plugin
 Run the build command inside the plugin folder to compile it to WebAssembly and generate package wrappers:
@@ -112,7 +115,7 @@ Internally, the runtime serializes function arguments into JSON, passes them to 
 
 ### 2. Automatic Memory Management
 
-The Rust and Go SDKs abstract WebAssembly memory management by automatically handling:
+The Rust, Go, and C++ SDKs abstract WebAssembly memory management by automatically handling:
 
 - Heap allocation
 - Pointer pinning
@@ -142,6 +145,7 @@ To learn more about creating, building, testing, and publishing plugins, check o
 - **Void CLI Reference:** See the [Void CLI README](packages/void-cli/README.md) for detailed CLI commands.
 - **Go Plugins Developer Guide:** See the [Go Plugin template README](packages/void-cli/templates/go/README.md) for instructions on starting, building, and configuring Go plugins.
 - **Rust Plugins Developer Guide:** See the [Rust Plugin template README](packages/void-cli/templates/rust/README.md) for instructions on starting, building, and configuring Rust plugins.
+- **C++ Plugins Developer Guide:** See the [C++ Plugin template README](packages/void-cli/templates/cpp/README.md) for instructions on starting, building, and configuring C++ plugins.
 
 ---
 

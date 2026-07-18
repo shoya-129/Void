@@ -214,3 +214,39 @@ func GetNull(m map[string]json.RawMessage, key string) error {
 	}
 	return nil
 }
+
+// MemoryStats represents heap allocation statistics for active allocations pinned by the Go SDK.
+type MemoryStats struct {
+	AllocatedObjects int   `json:"allocated_objects"` // Number of active allocations pinned in memory
+	TotalBytesPinned int64 `json:"total_bytes_pinned"` // Total bytes across all active pinned memory slices
+}
+
+// GetMemoryStats calculates and returns the current memory stats of the Go SDK's GC-pinned heap.
+func GetMemoryStats() MemoryStats {
+	totalBytes := int64(0)
+	for _, buf := range heap {
+		totalBytes += int64(len(buf))
+	}
+	return MemoryStats{
+		AllocatedObjects: len(heap),
+		TotalBytesPinned: totalBytes,
+	}
+}
+
+// PinMemory manually allocates and pins a byte slice in the Go SDK's heap map, returning its pointer.
+// Note: You MUST call UnpinMemory with the returned pointer once you are done using it to prevent memory leaks.
+func PinMemory(data []byte) uint32 {
+	if len(data) == 0 {
+		return 0
+	}
+	buf := make([]byte, len(data))
+	copy(buf, data)
+	ptr := uintptr(unsafe.Pointer(&buf[0]))
+	heap[ptr] = buf
+	return uint32(ptr)
+}
+
+// UnpinMemory manually unpins and releases a previously pinned slice from the Go heap map.
+func UnpinMemory(ptr uint32) {
+	delete(heap, uintptr(ptr))
+}

@@ -44,6 +44,28 @@ The SDK provides helper functions to safely extract typed JSON values from incom
 - `get_value(&args, "key") -> Result<Value, String>`
 - `get_null(&args, "key") -> Result<(), String>`
 
+## Memory Management & Safety API
+
+The SDK automatically manages heap memory during FFI boundaries. You can inspect FFI heap activity or manually allocate/release blocks using these utilities:
+
+### Check Memory Statistics
+Inspect counts of currently active FFI allocations and total allocated memory size:
+```rust
+let stats = void_sdk_rust::get_memory_stats();
+// stats.allocated_objects (usize)
+// stats.total_bytes_pinned (u64)
+```
+
+### Manual Pinning Helpers
+For manually pinning raw arrays of bytes outside the standard invocation lifecycles:
+```rust
+// Pin a slice on the heap and get its pointer
+let ptr = unsafe { void_sdk_rust::pin_memory(&my_bytes) };
+
+// Unpin the block once finished to avoid memory leaks
+unsafe { void_sdk_rust::unpin_memory(ptr, my_bytes.len()) };
+```
+
 ## License
 
 ISC License. See `LICENSE` for details.

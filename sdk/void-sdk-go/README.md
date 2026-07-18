@@ -7,7 +7,7 @@ The official Go SDK for building high-performance WebAssembly plugins on top of 
 Add this dependency to your plugin's `go.mod`:
 
 ```go
-require github.com/shoya-129/Void/sdk/void-sdk-go v1.0.0
+require github.com/shoya-129/Void/sdk/void-sdk-go v1.0.1
 ```
 
 ## Quick Start
@@ -45,6 +45,28 @@ The SDK provides helper functions to safely extract typed JSON values from incom
 - `void.GetObject(args, "key") (map[string]json.RawMessage, error)`
 - `void.GetRaw(args, "key") (json.RawMessage, error)`
 - `void.GetNull(args, "key") error`
+
+## Memory Management & Safety API
+
+The SDK handles FFI allocations and pins memory slices automatically to prevent Go GC cleanup. You can monitor heap allocations and manually manage custom buffers using the following:
+
+### Check Memory Statistics
+Retrieve the count of active pinned allocations and total pinned bytes to verify safety and inspect for leaks:
+```go
+stats := void.GetMemoryStats()
+// stats.AllocatedObjects (int)
+// stats.TotalBytesPinned (int64)
+```
+
+### Manual Pinning Helpers
+For advanced uses requiring manual memory allocation and lifecycle pinning outside the standard invocation scope:
+```go
+// Pin a byte slice on the Go heap map and get its pointer
+ptr := void.PinMemory(myBytes)
+
+// Unpin it once finished to avoid memory leaks
+void.UnpinMemory(ptr)
+```
 
 ## Build Target
 

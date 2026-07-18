@@ -1,6 +1,6 @@
 [package]
 name = "void-sdk-rust"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "Void SDK for building WebAssembly plugins in Rust"
 authors = ["Soham Pramanik"]
