@@ -23,6 +23,7 @@ void/
 │   └── math/             # Example Go math plugin
 └── README.md             # This documentation
 ```
+For detailed instructions on starter boilerplates, read the [Go Plugin README](packages/void-cli/templates/go/README.md) and [Rust Plugin README](packages/void-cli/templates/rust/README.md).
 
 ---
 
@@ -49,6 +50,9 @@ void init
 # Instantiate a template
 void create my-plugin
 ```
+Refer to the starter templates' instructions to begin coding:
+- [Go Plugin Developer Guide](packages/void-cli/templates/go/README.md)
+- [Rust Plugin Developer Guide](packages/void-cli/templates/rust/README.md)
 
 ### Compile & Build the plugin
 Run the build command inside the plugin folder to compile it to WebAssembly and generate package wrappers:
@@ -102,6 +106,16 @@ Void replaces standard signature files (`void.json` signatures) with dynamic ES 
 1. **Unified JSON FFI**: Arguments are serialized to JSON strings and passed to a single entrypoint `void_invoke`.
 2. **Memory Safety**: Go/Rust SDKs manage heap allocation, pointer pinning, and free mechanisms.
 3. **Dynamic Reflection**: The JS host loader reads `__list_functions__` on boot to bind ES Proxy interfaces dynamically.
+
+---
+
+## 4. Developer Guides & Read More
+
+To learn more about creating, building, testing, and publishing plugins, check out the following guides:
+
+- **Void CLI Reference:** See the [Void CLI README](packages/void-cli/README.md) for detailed CLI commands.
+- **Go Plugins Developer Guide:** See the [Go Plugin template README](packages/void-cli/templates/go/README.md) for instructions on starting, building, and configuring Go plugins.
+- **Rust Plugins Developer Guide:** See the [Rust Plugin template README](packages/void-cli/templates/rust/README.md) for instructions on starting, building, and configuring Rust plugins.
 
 ---
 

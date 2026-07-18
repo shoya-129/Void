@@ -100,48 +100,82 @@ function copyFolderRecursive(src, dest, replacements = {}) {
   }
 }
 
-function copyNonSourceFiles(src, dest, buildOutputDir) {
-  ensureDir(dest);
-  const entries = fs.readdirSync(src, { withFileTypes: true });
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    
-    // Prevent copying the build output directory into itself
-    if (srcPath === buildOutputDir || srcPath.startsWith(buildOutputDir + path.sep)) {
-      continue;
+function copyNonSourceFiles(src, dest, buildOutputDir, filesConfig, wasmFilename) {
+  if (!filesConfig || !Array.isArray(filesConfig) || filesConfig.length === 0) {
+    return;
+  }
+
+  function matchGlob(filePath, pattern) {
+    const normalizedPath = filePath.replace(/\\/g, "/");
+    const normalizedPattern = pattern.replace(/\\/g, "/");
+
+    if (normalizedPath === normalizedPattern) {
+      return true;
     }
-    
-    // Skip standard build/dev folders
-    if (entry.name === "@void" || 
-        entry.name === "@tgrv" || 
-        entry.name === "target" || 
-        entry.name === ".git" || 
-        entry.name === "node_modules") {
-      continue;
+    const prefix = normalizedPattern.endsWith('/') ? normalizedPattern : normalizedPattern + '/';
+    if (normalizedPath.startsWith(prefix)) {
+      return true;
     }
+
+    const globToRegex = (glob) => {
+      return '^' + glob
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*\*/g, '___DOUBLE_STAR___')
+        .replace(/\*/g, '___SINGLE_STAR___')
+        .replace(/\?/g, '___QUESTION___')
+        .replace(/___DOUBLE_STAR___/g, '.*')
+        .replace(/___SINGLE_STAR___/g, '[^/]*')
+        .replace(/___QUESTION___/g, '.') + '$';
+    };
+
+    const regex = new RegExp(globToRegex(normalizedPattern));
     
-    if (entry.isDirectory()) {
-      copyNonSourceFiles(srcPath, destPath, buildOutputDir);
-    } else {
-      const ext = path.extname(entry.name).toLowerCase();
-      const filename = entry.name.toLowerCase();
+    if (!normalizedPattern.includes('/')) {
+      const baseName = path.basename(normalizedPath);
+      if (regex.test(baseName)) {
+        return true;
+      }
+    }
+
+    return regex.test(normalizedPath);
+  }
+
+  function traverse(currentDir) {
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
       
-      // Exclude Go/Rust/Cargo files and build binaries/configs
-      if (ext === ".go" || 
-          ext === ".rs" || 
-          filename === "cargo.toml" || 
-          filename === "cargo.lock" || 
-          filename === "go.mod" || 
-          filename === "go.sum" || 
-          filename === "void.json" ||
-          filename === "plugin.wasm") {
+      // Prevent copying build output directory or skipped directories
+      if (fullPath === buildOutputDir || fullPath.startsWith(buildOutputDir + path.sep)) {
         continue;
       }
-      
-      fs.copyFileSync(srcPath, destPath);
+      if (entry.name === "@void" || 
+          entry.name === "@tgrv" || 
+          entry.name === "target" || 
+          entry.name === ".git" || 
+          entry.name === "node_modules" ||
+          entry.name === "void.json" ||
+          (wasmFilename && entry.name === wasmFilename)) {
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        traverse(fullPath);
+      } else {
+        const relativePath = path.relative(src, fullPath);
+        
+        // Check if relativePath matches any glob in filesConfig
+        const matches = filesConfig.some(pattern => matchGlob(relativePath, pattern));
+        if (matches) {
+          const destPath = path.join(dest, relativePath);
+          ensureDir(path.dirname(destPath));
+          fs.copyFileSync(fullPath, destPath);
+        }
+      }
     }
   }
+
+  traverse(src);
 }
 
 const args = process.argv.slice(2);
@@ -192,10 +226,20 @@ function runBuild(pluginPathArg) {
     process.exit(1);
   }
 
+  if (manifest.types) {
+    const typesPath = path.resolve(absolutePluginDir, manifest.types);
+    if (!fs.existsSync(typesPath) || !fs.statSync(typesPath).isFile()) {
+      console.error(`${cross} ${colors.red}Error: Types file '${manifest.types}' specified in void.json does not exist.${colors.reset}`);
+      process.exit(1);
+    }
+  }
+
   const pluginName = manifest.name;
   const pluginType = manifest.type;
   const buildDir = manifest.buildDir;
   const buildOutputDir = path.join(absolutePluginDir, buildDir);
+  const exportName = manifest.export || "plugin";
+  const wasmFilename = `${exportName}.wasm`;
 
   if (pluginType === "sdk") {
     console.log(`\n${info} Packaging SDK '${colors.bold}${pluginName}${colors.reset}' to local build at: ${colors.bold}${buildOutputDir}${colors.reset}`);
@@ -227,9 +271,9 @@ function runBuild(pluginPathArg) {
   }
   // Go plugin compilation
   else if (pluginType === "go") {
-    const outputWasm = path.join(absolutePluginDir, "plugin.wasm");
-    console.log(`${info} Running: ${colors.blue}go build -o plugin.wasm${colors.reset}`);
-    const compileSuccess = runCommand("go build -o plugin.wasm", {
+    const outputWasm = path.join(absolutePluginDir, wasmFilename);
+    console.log(`${info} Running: ${colors.blue}go build -o ${wasmFilename}${colors.reset}`);
+    const compileSuccess = runCommand(`go build -o ${wasmFilename}`, {
       cwd: absolutePluginDir,
       env: { ...process.env, GOOS: "wasip1", GOARCH: "wasm" },
     });
@@ -247,7 +291,7 @@ function runBuild(pluginPathArg) {
   ensureDir(buildOutputDir);
 
   // Copy WASM
-  fs.copyFileSync(builtWasmPath, path.join(buildOutputDir, "plugin.wasm"));
+  fs.copyFileSync(builtWasmPath, path.join(buildOutputDir, wasmFilename));
 
   // Clean up temporary compiled WASM
   if (path.dirname(builtWasmPath) === absolutePluginDir) {
@@ -258,7 +302,7 @@ function runBuild(pluginPathArg) {
     }
   }
 
-  // Write package.json if it does not already exist, or check version if it does
+  // Write package.json if it does not already exist, or check version/types if it does
   const packageJsonPath = path.join(buildOutputDir, "package.json");
   if (!fs.existsSync(packageJsonPath)) {
     const pkgJson = {
@@ -273,18 +317,37 @@ function runBuild(pluginPathArg) {
         access: "public"
       }
     };
+    if (manifest.types) {
+      pkgJson.types = manifest.types;
+    }
     fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
   } else {
     try {
       const existingPkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+      let changed = false;
       if (existingPkg.version !== manifest.version) {
         console.log(`${info} Version mismatch detected in ${packageJsonPath}. Updating from ${existingPkg.version} to ${manifest.version} to match void.json.`);
         existingPkg.version = manifest.version || "1.0.0";
+        changed = true;
+      }
+      if (manifest.types && existingPkg.types !== manifest.types) {
+        existingPkg.types = manifest.types;
+        changed = true;
+      }
+      if (changed) {
         fs.writeFileSync(packageJsonPath, JSON.stringify(existingPkg, null, 2));
       }
     } catch (err) {
-      console.warn(`${warning} Failed to check/update existing package.json version: ${err.message}`);
+      console.warn(`${warning} Failed to check/update existing package.json version/types: ${err.message}`);
     }
+  }
+
+  // Copy types file if specified
+  if (manifest.types) {
+    const typesPath = path.resolve(absolutePluginDir, manifest.types);
+    const destTypesPath = path.join(buildOutputDir, manifest.types);
+    ensureDir(path.dirname(destTypesPath));
+    fs.copyFileSync(typesPath, destTypesPath);
   }
 
   // Generate standard ESM index.js loader
@@ -295,14 +358,14 @@ import { dirname, join } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const plugin = await runtime.load(
-  join(__dirname, "plugin.wasm")
+const ${exportName} = await runtime.load(
+  join(__dirname, "${wasmFilename}")
 );
 
-export default plugin;
+export default ${exportName};
 `;
   fs.writeFileSync(path.join(buildOutputDir, "index.js"), indexJsContent);
-  copyNonSourceFiles(absolutePluginDir, buildOutputDir, buildOutputDir);
+  copyNonSourceFiles(absolutePluginDir, buildOutputDir, buildOutputDir, manifest.files, wasmFilename);
   console.log(`${tick} ${colors.green}Successfully completed compilation & packaging!${colors.reset}`);
   return buildOutputDir;
 }

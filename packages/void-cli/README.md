@@ -14,33 +14,37 @@ npm install -g @tgrv/void-cli
 
 ### 1. Initialize a new application project
 ```bash
-void init [path]
+void init [app-path]
 ```
-Creates standard configuration templates and installs the `@tgrv/void-runtime` engine automatically.
+Creates standard configuration templates and installs the `@tgrv/void-runtime` engine automatically. Defaults to the current folder (`.`).
 
 ### 2. Create a new Rust or Go plugin project
 ```bash
 void create [plugin-path]
 ```
-Prompts for language configuration and instantiates starting templates with pre-configured SDK targets.
+Prompts for language configuration and instantiates starting templates with pre-configured SDK targets. Defaults to the current folder (`.`).
 
 ### 3. Build a plugin locally
 ```bash
 void build [plugin-path]
 ```
-Compiles source files (Cargo/Go) and wraps the WASM binary under a local scoped output folder configured in `void.json`. Defaults to current folder (`.`).
+Compiles source files (Cargo/Go) and wraps the WebAssembly binary and configured assets under the build directory configured in `void.json`. Run from a plugin root folder (defaults to current folder `.`).
 
 ### 4. Publish a plugin
 ```bash
 void publish [plugin-path]
 ```
-Compiles and triggers `npm publish` natively from inside the scoped build directory. Defaults to current folder (`.`).
+Compiles the plugin and runs `npm publish` natively from inside the built directory. Run from a plugin root folder (defaults to current folder `.`).
 
 ### 5. Install / Add a plugin
 ```bash
-void add <plugin-name>
+void add <plugin-name-or-build-path>
 ```
-Downloads the plugin from the NPM registry, or links local build outputs during development, adding dependencies to `void.config.json` and `package.json`.
+Installs a plugin into the application:
+- **Registry:** `void add <plugin-name>` downloads the plugin from the NPM registry.
+- **Local Development / Testing:** `void add <build-folder-path>` (e.g. `void add ../plugins/math/@void/void-math`) copies the compiled local build output directory directly.
+
+Adds the plugin dependency automatically to `void.config.json` and `package.json`.
 
 ### 6. Remove a plugin
 ```bash

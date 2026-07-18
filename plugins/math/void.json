@@ -2,5 +2,11 @@
   "name": "@tgrv/void-math",
   "version": "1.0.6",
   "type": "go",
-  "buildDir": "@void/void-math"
+  "buildDir": "@void/void-math",
+  "types": "types.d.ts",
+  "export": "math",
+  "files": [
+    "*.d.ts",
+    "*.md"
+  ]
 }

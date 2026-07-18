@@ -2,5 +2,11 @@
   "name": "@tgrv/void-crypto",
   "version": "1.0.2",
   "type": "rust",
-  "buildDir": "@void/void-crypto"
+  "buildDir": "@void/void-crypto",
+  "types": "types.d.ts",
+  "export": "crypto",
+  "files": [
+    "*.d.ts",
+    "*.md"
+  ]
 }

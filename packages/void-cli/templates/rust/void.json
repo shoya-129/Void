@@ -2,5 +2,10 @@
   "name": "@void/{{name}}",
   "version": "1.0.0",
   "type": "rust",
-  "buildDir": "@void/{{name}}"
+  "buildDir": "@void/{{name}}",
+  "export": "{{name}}",
+  "files": [
+    "*.d.ts",
+    "*.md"
+  ]
 }
