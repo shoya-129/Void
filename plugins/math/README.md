@@ -20,23 +20,23 @@ If you have an existing or new Node.js/Express project, navigate to its director
 ```bash
 npx void init
 ```
-This initializes standard Void configurations and automatically installs the `@tgrv/void-runtime` engine in your host application.
+This initializes standard Void configurations and automatically installs the `@voidwasm/runtime` engine in your host application.
 
 ### Step 2: Build the Math Plugin
 Navigate to this directory (`plugins/math`) and run the build command:
 ```bash
 npx void build
 ```
-This compiles the Go source code (`main.go`) to WebAssembly and places the final NPM-ready package structure inside the `@void/void-math` subdirectory (as configured in `void.json`).
+This compiles the Go source code (`main.go`) to WebAssembly and places the final NPM-ready package structure inside the `@void/math` subdirectory (as configured in `void.json`).
 
 ### Step 3: Link the Plugin to Your Application
 Navigate back to your Node.js application directory and run:
 ```bash
-npx void add <path-to-this-plugin>/@void/void-math
+npx void add <path-to-this-plugin>/@void/math
 ```
 *Example (if your app is in `examples/express-void`):*
 ```bash
-npx void add ../../plugins/math/@void/void-math
+npx void add ../../plugins/math/@void/math
 ```
 This command automatically:
 1. Copies/links the build output into your host app's `node_modules`.
@@ -46,7 +46,7 @@ This command automatically:
 Now, you can import and call the math plugin functions directly inside your JavaScript/TypeScript files.
 
 ```typescript
-import math from '@tgrv/void-math';
+import math from '@voidwasm/math';
 
 // 1. Basic addition (supporting multiple signatures)
 const sum1 = math.add({ a: 10, b: 20 });

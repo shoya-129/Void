@@ -7,8 +7,8 @@
     "cpp-init": "cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && node -e \"const fs=require('fs'); if (fs.existsSync('build/compile_commands.json')) fs.copyFileSync('build/compile_commands.json', 'compile_commands.json')\""
   },
   "dependencies": {
-    "@tgrv/void-runtime": "latest",
-    "@tgrv/void-sdk-cpp": "latest"
+    "@voidwasm/runtime": "latest",
+    "@voidwasm/sdk-cpp": "latest"
   },
   "publishConfig": {
     "access": "public"

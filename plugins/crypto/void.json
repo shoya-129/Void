@@ -1,8 +1,8 @@
 {
-  "name": "@tgrv/void-crypto",
+  "name": "@voidwasm/crypto",
   "version": "1.0.2",
   "type": "rust",
-  "buildDir": "@void/void-crypto",
+  "buildDir": "@void/crypto",
   "types": "types.d.ts",
   "export": "crypto",
   "files": [

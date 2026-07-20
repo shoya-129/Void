@@ -1,4 +1,4 @@
-import math from "@tgrv/void-math";
+import math from "@voidwasm/math";
 
 console.log("=== Void Application ===");
 

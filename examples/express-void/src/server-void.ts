@@ -1,6 +1,6 @@
 import express, { type Express, type Request, type Response } from 'express';
-import math from '@tgrv/void-math';
-import crypto from "@tgrv/void-crypto"
+import math from '@voidwasm/math';
+import crypto from "@voidwasm/crypto";
 
 const app: Express = express();
 app.use(express.json());

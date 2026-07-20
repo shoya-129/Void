@@ -9,10 +9,10 @@ import readline from "readline";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const cliRoot = path.resolve(__dirname, "..");
-const isLocalDev = fs.existsSync(path.join(cliRoot, "../../packages/void-runtime"));
+const isLocalDev = fs.existsSync(path.join(cliRoot, "../../packages/runtime"));
 
 function findWorkspaceRoot(dir) {
-  const checkPath = path.join(dir, "packages", "void-runtime");
+  const checkPath = path.join(dir, "packages", "runtime");
   if (fs.existsSync(checkPath)) {
     return dir;
   }
@@ -57,6 +57,23 @@ function findConfig(dir) {
   return findConfig(parent);
 }
 
+function findWasmFiles(dir) {
+  let results = [];
+  if (!fs.existsSync(dir)) return results;
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name !== "node_modules") {
+        results = results.concat(findWasmFiles(fullPath));
+      }
+    } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".wasm")) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
 function runCommand(cmd, options = {}) {
   try {
     execSync(cmd, { stdio: "inherit", ...options });
@@ -88,7 +105,7 @@ function copyFolderRecursive(src, dest, replacements = {}) {
     const destPath = path.join(dest, entry.name);
     if (entry.isDirectory()) {
       // Avoid copying build output folder back into itself
-      if (entry.name === "@void" || entry.name === "@tgrv") {
+      if (entry.name === "@void" || entry.name === "@tgrv" || entry.name === "@voidwasm") {
         continue;
       }
       copyFolderRecursive(srcPath, destPath, replacements);
@@ -159,6 +176,7 @@ function copyNonSourceFiles(src, dest, buildOutputDir, filesConfig, wasmFilename
       }
       if (entry.name === "@void" || 
           entry.name === "@tgrv" || 
+          entry.name === "@voidwasm" || 
           entry.name === "target" || 
           entry.name === ".git" || 
           entry.name === "node_modules" ||
@@ -438,7 +456,7 @@ function runBuild(pluginPathArg) {
       type: "module",
       main: "index.js",
       dependencies: {
-        "@tgrv/void-runtime": "latest",
+        "@voidwasm/runtime": "latest",
         ...(manifest.dependencies || {})
       },
       publishConfig: {
@@ -486,7 +504,7 @@ function runBuild(pluginPathArg) {
   }
 
   // Generate standard ESM index.js loader
-  const indexJsContent = `import { runtime } from "@tgrv/void-runtime";
+  const indexJsContent = `import { runtime } from "@voidwasm/runtime";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -595,7 +613,7 @@ function runAdd(pluginNameInput, appDir) {
         for (const subdir of subdirs) {
           const pPath = path.join(root, subdir);
           if (fs.statSync(pPath).isDirectory()) {
-            // Scans nested scopes (e.g. plugins/math/@tgrv/void-math)
+            // Scans nested scopes (e.g. plugins/math/@voidwasm/math)
             const entries = fs.readdirSync(pPath);
             for (const entry of entries) {
               if (entry.startsWith("@")) {
@@ -736,7 +754,7 @@ async function main() {
       if (!hasExistingPkg) {
         const appPath = path.join(targetDir, "app.js");
         if (!fs.existsSync(appPath)) {
-          const appContent = `import math from "@tgrv/void-math";
+          const appContent = `import math from "@voidwasm/math";
 
 console.log("=== Void Application ===");
 
@@ -751,15 +769,15 @@ try {
       }
 
       // Install void-runtime via NPM
-      console.log(`${info} Running: ${colors.blue}npm install @tgrv/void-runtime${colors.reset}`);
-      const npmSuccess = runCommand("npm install @tgrv/void-runtime", { cwd: targetDir });
+      console.log(`${info} Running: ${colors.blue}npm install @voidwasm/runtime${colors.reset}`);
+      const npmSuccess = runCommand("npm install @voidwasm/runtime", { cwd: targetDir });
       if (!npmSuccess) {
-        console.error(`${cross} ${colors.red}Failed to install @tgrv/void-runtime via npm.${colors.reset}`);
+        console.error(`${cross} ${colors.red}Failed to install @voidwasm/runtime via npm.${colors.reset}`);
       }
 
-      // If it's a fresh project, also install @tgrv/void-math using the shared installer logic
+      // If it's a fresh project, also install @voidwasm/math using the shared installer logic
       if (!hasExistingPkg) {
-        runAdd("@tgrv/void-math", targetDir);
+        runAdd("@voidwasm/math", targetDir);
       }
 
       console.log(`${tick} ${colors.green}Successfully initialized Void project!${colors.reset}`);
@@ -846,7 +864,7 @@ try {
       }
 
       console.log(`${tick} ${colors.green}Plugin created successfully under '${pluginPathArg}'!${colors.reset}`);
-      console.log(`${info} ${colors.yellow}Reminder: Make sure to include build directories in your main .gitignore to avoid committing builds (e.g., add **/@void/ and **/@tgrv/).${colors.reset}\n`);
+      console.log(`${info} ${colors.yellow}Reminder: Make sure to include build directories in your main .gitignore to avoid committing builds (e.g., add **/@voidwasm/).${colors.reset}\n`);
       break;
     }
 
@@ -875,7 +893,7 @@ try {
     case "add": {
       const pluginName = args[1];
       if (!pluginName) {
-        console.error(`${cross} ${colors.red}Error: Please specify the plugin to add. e.g. void add @tgrv/void-math${colors.reset}`);
+        console.error(`${cross} ${colors.red}Error: Please specify the plugin to add. e.g. void add @voidwasm/math${colors.reset}`);
         process.exit(1);
       }
       runAdd(pluginName, process.cwd());
@@ -885,7 +903,7 @@ try {
     case "remove": {
       const pluginName = args[1];
       if (!pluginName) {
-        console.error(`${cross} ${colors.red}Error: Please specify the plugin to remove. e.g. void remove @tgrv/void-math${colors.reset}`);
+        console.error(`${cross} ${colors.red}Error: Please specify the plugin to remove. e.g. void remove @voidwasm/math${colors.reset}`);
         process.exit(1);
       }
 
@@ -939,7 +957,7 @@ try {
     case "view": {
       const pluginName = args[1];
       if (!pluginName) {
-        console.error(`${cross} ${colors.red}Error: Please specify the plugin to view, e.g. void view @tgrv/void-math${colors.reset}`);
+        console.error(`${cross} ${colors.red}Error: Please specify the plugin to view, e.g. void view @voidwasm/math${colors.reset}`);
         process.exit(1);
       }
 
@@ -955,15 +973,17 @@ try {
         process.exit(1);
       }
 
-      const wasmPath = path.join(pluginDir, "plugin.wasm");
-      if (!fs.existsSync(wasmPath)) {
-        console.error(`${cross} ${colors.red}Error: WASM binary not found at: ${wasmPath}${colors.reset}`);
+      const wasmFiles = findWasmFiles(pluginDir);
+      if (wasmFiles.length === 0) {
+        console.error(`${cross} ${colors.red}Error: No .wasm binary found in plugin package: ${pluginDir}${colors.reset}`);
         process.exit(1);
       }
 
+      const wasmPath = wasmFiles[0];
+
       // Dynamically load the plugin and query its functions
       try {
-        const runtimePath = path.join(process.cwd(), "node_modules", "@tgrv", "void-runtime", "index.js");
+        const runtimePath = path.join(process.cwd(), "node_modules", "@voidwasm", "runtime", "index.js");
         const { runtime } = await import(pathToFileURL(path.resolve(runtimePath)).toString());
         const plugin = await runtime.load(wasmPath);
         

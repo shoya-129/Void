@@ -1,9 +1,12 @@
 {
-  "name": "@tgrv/void-cli",
+  "name": "@voidwasm/cli",
   "version": "1.1.6",
   "type": "module",
   "bin": {
     "void": "./bin/void.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {}
 }

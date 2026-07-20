@@ -1,12 +1,12 @@
 {
-  "name": "hello-cpp",
+  "name": "@voidwasm/hello-cpp",
   "version": "1.0.0",
   "type": "cpp",
   "buildDir": "@void/hello-cpp",
   "types": "types.d.ts",
   "export": "h",
   "dependencies": {
-    "@tgrv/void-sdk-cpp": "^1.0.0"
+    "@voidwasm/sdk-cpp": "^1.0.0"
   },
   "files": [
     "*.d.ts",

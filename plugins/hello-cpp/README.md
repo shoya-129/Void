@@ -5,7 +5,7 @@ A template for building WebAssembly (WASM) plugins for the **Void** framework us
 ## 🚀 Getting Started
 
 > [!IMPORTANT]
-> Before building your plugin, run **`npm install`** (or `npm i`) in this root directory to download the C++ SDK dependency (`@tgrv/void-sdk-cpp`).
+> Before building your plugin, run **`npm install`** (or `npm i`) in this root directory to download the C++ SDK dependency (`@voidwasm/sdk-cpp`).
 > 
 > To enable C++ autocomplete, hovers, and syntax diagnostics in your editor, run the initialization script immediately after installing dependencies:
 > ```bash
@@ -55,7 +55,7 @@ npx void publish
 
 Your plugin configuration is defined in `void.json`. Here are the available fields:
 
-- **`name`**: The package name of your plugin (e.g. `my-plugin`).
+- **`name`**: The package name of your plugin (e.g. `@voidwasm/hello-cpp`).
 - **`version`**: The current semantic version of the plugin.
 - **`type`**: The compilation target language. Set to `"cpp"`.
 - **`buildDir`**: The target directory where compilation and wrapping assets are generated (e.g. `@void/my-plugin`).

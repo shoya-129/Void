@@ -15,17 +15,17 @@ void/
 │   ├── void-sdk-go/      # Go memory-pinning SDK
 │   └── void-sdk-cpp/     # C++ SDK (memory, registration, JSON mapping)
 ├── packages/
-│   ├── void-cli/         # Developer command line interface
+│   ├── cli/              # Developer command line interface
 │   │       ├── templates/
 │   │           ├── rust/             # Starter boilerplate for Rust plugins
 │   │           ├── go/               # Starter boilerplate for Go plugins
 │   │           └── cpp/              # Starter boilerplate for C++ plugins
-│   └── void-runtime/     # Dynamic JS reflection runtime loader
+│   └── runtime/          # Dynamic JS reflection runtime loader
 ├── plugins/
 │   └── math/             # Example Go math plugin
 └── README.md             # This documentation
 ```
-For detailed instructions on starter boilerplates, read the [Go Plugin README](packages/void-cli/templates/go/README.md), [Rust Plugin README](packages/void-cli/templates/rust/README.md), and [C++ Plugin README](packages/void-cli/templates/cpp/README.md).
+For detailed instructions on starter boilerplates, read the [Go Plugin README](packages/cli/templates/go/README.md), [Rust Plugin README](packages/cli/templates/rust/README.md), and [C++ Plugin README](packages/cli/templates/cpp/README.md).
 
 ---
 
@@ -34,7 +34,7 @@ For detailed instructions on starter boilerplates, read the [Go Plugin README](p
 Ensure you have Node.js, Go (1.24+), and Rust installed.
 
 ```bash
-npm install -g @tgrv/void-cli
+npm install -g @voidwasm/cli
 ```
 
 ### Initialize an application project
@@ -53,9 +53,9 @@ void init
 void create my-plugin
 ```
 Refer to the starter templates' instructions to begin coding:
-- [Go Plugin Developer Guide](packages/void-cli/templates/go/README.md)
-- [Rust Plugin Developer Guide](packages/void-cli/templates/rust/README.md)
-- [C++ Plugin Developer Guide](packages/void-cli/templates/cpp/README.md)
+- [Go Plugin Developer Guide](packages/cli/templates/go/README.md)
+- [Rust Plugin Developer Guide](packages/cli/templates/rust/README.md)
+- [C++ Plugin Developer Guide](packages/cli/templates/cpp/README.md)
 
 ### Compile & Build the plugin
 Run the build command inside the plugin folder to compile it to WebAssembly and generate package wrappers:
@@ -80,13 +80,13 @@ To test your newly created plugin inside an application:
    ```bash
    void add ../my-plugin
    ```
-   *(Or install by package name: `void add @void/my-plugin` if you are in the same workspace).*
+   *(Or install by package name: `void add @voidwasm/my-plugin` if you are in the same workspace).*
 
 3. **Write and run your test script**:
    Create an `app.js` file to import and call your plugin:
    ```javascript
    // app.js
-   import myPlugin from "@void/my-plugin";
+   import myPlugin from "@voidwasm/my-plugin";
 
    try {
      const result = await myPlugin.hello({ name: "Void Developer" });
@@ -142,10 +142,10 @@ This allows plugins to be consumed without generating bindings or maintaining in
 
 To learn more about creating, building, testing, and publishing plugins, check out the following guides:
 
-- **Void CLI Reference:** See the [Void CLI README](packages/void-cli/README.md) for detailed CLI commands.
-- **Go Plugins Developer Guide:** See the [Go Plugin template README](packages/void-cli/templates/go/README.md) for instructions on starting, building, and configuring Go plugins.
-- **Rust Plugins Developer Guide:** See the [Rust Plugin template README](packages/void-cli/templates/rust/README.md) for instructions on starting, building, and configuring Rust plugins.
-- **C++ Plugins Developer Guide:** See the [C++ Plugin template README](packages/void-cli/templates/cpp/README.md) for instructions on starting, building, and configuring C++ plugins.
+- **Void CLI Reference:** See the [Void CLI README](packages/cli/README.md) for detailed CLI commands.
+- **Go Plugins Developer Guide:** See the [Go Plugin template README](packages/cli/templates/go/README.md) for instructions on starting, building, and configuring Go plugins.
+- **Rust Plugins Developer Guide:** See the [Rust Plugin template README](packages/cli/templates/rust/README.md) for instructions on starting, building, and configuring Rust plugins.
+- **C++ Plugins Developer Guide:** See the [C++ Plugin template README](packages/cli/templates/cpp/README.md) for instructions on starting, building, and configuring C++ plugins.
 
 ---
 

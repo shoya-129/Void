@@ -1,4 +1,4 @@
-# Void CLI (`@tgrv/void-cli`)
+# Void CLI (`@voidwasm/cli`)
 
 The official developer command-line toolkit for initializing, building, and publishing WebAssembly plugins for the **Void** framework.
 
@@ -7,7 +7,7 @@ The official developer command-line toolkit for initializing, building, and publ
 Install globally or use on-demand via `npx`:
 
 ```bash
-npm install -g @tgrv/void-cli
+npm install -g @voidwasm/cli
 ```
 
 ## CLI Usage
@@ -16,7 +16,7 @@ npm install -g @tgrv/void-cli
 ```bash
 void init [app-path]
 ```
-Creates standard configuration templates and installs the `@tgrv/void-runtime` engine automatically. Defaults to the current folder (`.`).
+Creates standard configuration templates and installs the `@voidwasm/runtime` engine automatically. Defaults to the current folder (`.`).
 
 ### 2. Create a new Rust or Go plugin project
 ```bash
@@ -42,7 +42,7 @@ void add <plugin-name-or-build-path>
 ```
 Installs a plugin into the application:
 - **Registry:** `void add <plugin-name>` downloads the plugin from the NPM registry.
-- **Local Development / Testing:** `void add <build-folder-path>` (e.g. `void add ../plugins/math/@void/void-math`) copies the compiled local build output directory directly.
+- **Local Development / Testing:** `void add <build-folder-path>` (e.g. `void add ../plugins/math`) copies the plugin directory directly to the node_modules folder.
 
 Adds the plugin dependency automatically to `void.config.json` and `package.json`.
 

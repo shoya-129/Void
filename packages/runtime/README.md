@@ -1,4 +1,4 @@
-# Void Runtime (`@tgrv/void-runtime`)
+# Void Runtime (`@voidwasm/runtime`)
 
 The dynamic JavaScript/TypeScript host loader and runtime engine for executing **Void** WebAssembly plugins in Node.js and browser environments.
 
@@ -11,13 +11,13 @@ The dynamic JavaScript/TypeScript host loader and runtime engine for executing *
 ## Installation
 
 ```bash
-npm install @tgrv/void-runtime
+npm install @voidwasm/runtime
 ```
 
 ## Usage
 
 ```javascript
-import { runtime } from "@tgrv/void-runtime";
+import { runtime } from "@voidwasm/runtime";
 
 // Load WASM plugin and execute calls dynamically
 const plugin = await runtime.load("./plugin.wasm");

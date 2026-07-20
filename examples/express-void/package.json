@@ -16,10 +16,10 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@tgrv/void-math": "^1.0.5",
-    "@tgrv/void-runtime": "^1.0.0",
+    "@voidwasm/math": "latest",
+    "@voidwasm/runtime": "latest",
     "express": "^5.2.1",
-    "@tgrv/void-crypto": "^1.0.0"
+    "@voidwasm/crypto": "latest"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

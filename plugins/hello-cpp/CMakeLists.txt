@@ -20,7 +20,7 @@ if (EMSCRIPTEN)
 endif()
 
 # Reference Void C++ SDK
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tgrv/void-sdk-cpp" void-sdk-cpp-build)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@voidwasm/sdk-cpp" void-sdk-cpp-build)
 
 
 add_executable(hello-cpp src/plugin.cpp)

@@ -1,6 +1,6 @@
 # Express Server with Void WebAssembly Plugins
 
-This example demonstrates how to integrate the **Void WASM Plugin Framework** with an **Express.js** web server in TypeScript. It loads the Go-compiled `@tgrv/void-math` WebAssembly plugin dynamically and calls its functions inside Express endpoints.
+This example demonstrates how to integrate the **Void WASM Plugin Framework** with an **Express.js** web server in TypeScript. It loads the Go-compiled `@voidwasm/math` WebAssembly plugin dynamically and calls its functions inside Express endpoints.
 
 ---
 
@@ -10,7 +10,7 @@ This example demonstrates how to integrate the **Void WASM Plugin Framework** wi
 Make sure you have Node.js (v22.6+ recommended for native TypeScript support) and npm installed.
 
 ### Step 1: Install Dependencies
-Install all package dependencies. In this repository, the `@tgrv/void-runtime` and `@tgrv/void-math` packages are pre-linked/copied locally inside `node_modules`:
+Install all package dependencies. In this repository, the `@voidwasm/runtime` and `@voidwasm/math` packages are pre-linked/copied locally inside `node_modules`:
 ```bash
 npm install
 ```
@@ -88,17 +88,17 @@ Update your `package.json` to configure the application type as ECMAScript Modul
 ### Step 2: Install Void CLI Globally & Initialize Void
 First, install the Void command line interface globally:
 ```bash
-npm install -g @tgrv/void-cli
+npm install -g @voidwasm/cli
 ```
 
-Initialize Void configuration inside your project (this generates `void.config.json` and installs `@tgrv/void-runtime`):
+Initialize Void configuration inside your project (this generates `void.config.json` and installs `@voidwasm/runtime`):
 ```bash
 void init
 ```
 
-Add your desired WebAssembly plugin (e.g. `@tgrv/void-math`):
+Add your desired WebAssembly plugin (e.g. `@voidwasm/math`):
 ```bash
-void add @tgrv/void-math
+void add @voidwasm/math
 ```
 
 ### Step 3: Install Express and TypeScript
@@ -129,7 +129,7 @@ Create your entry point file at `src/app.ts`:
 ```typescript
 // src/app.ts
 import express, { type Express, type Request, type Response } from 'express';
-import math from '@tgrv/void-math';
+import math from '@voidwasm/math';
 
 const app: Express = express();
 app.use(express.json());

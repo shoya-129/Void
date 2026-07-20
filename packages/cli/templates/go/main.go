@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/tgrv/void-sdk-go"
+	"github.com/shoya-129/Void/sdk/void-sdk-go"
 )
 
 func Hello(args map[string]json.RawMessage) (any, error) {

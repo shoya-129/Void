@@ -87,7 +87,7 @@ npx void add ../../plugins/crypto
 ### 1. SHA-256 Hashing Chain (Node.js with Void Wins — 2.31x Speedup)
 * **What happened**: Node.js with the Void crypto plugin executed the hashing chain significantly faster (`36.21 ms` vs `83.68 ms`).
 * **Why Void Wins**: 
-  - The `@tgrv/void-crypto` plugin is written in **Rust** using the highly optimized `sha2` and `hex` crates.
+  - The `@voidwasm/crypto` plugin is written in **Rust** using the highly optimized `sha2` and `hex` crates.
   - Rust compiled to WASM performs zero-allocation byte conversions, has no garbage collection overhead, and executes pure loops extremely efficiently inside Node's native WASI context.
   - This allows the WASM runner to outperform V8 JIT execution in both sequential (`2.31x` speedup) and concurrent workloads (`2.77x` speedup).
 

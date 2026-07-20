@@ -33,7 +33,7 @@ All public functions, structures, and helper macros must be documented using sta
 
 ### 2. Manifest Schema
 Always create a `void.json` manifest file at the root of your plugins. The manifest must specify:
-- `name`: Package npm identifier (e.g. `@void/my-plugin`).
+- `name`: Package npm identifier (e.g. `@voidwasm/my-plugin`).
 - `type`: Language compiler mapping (`rust`, `go`, or `cpp`).
 - `buildDir`: Directory structure where build artifacts are nested.
 
@@ -44,17 +44,17 @@ Always create a `void.json` manifest file at the root of your plugins. The manif
 You do not need to be an expert in all languages to contribute to Void! You can focus on the language environment you are most comfortable with:
 
 ### 🦀 Rust Contributors
-- **Focus Areas:** `sdk/void-sdk-rust` and `packages/void-cli/templates/rust`
+- **Focus Areas:** `sdk/void-sdk-rust` and `packages/cli/templates/rust`
 - **Local Setup:** Run `rustup target add wasm32-unknown-unknown`.
 - **Contribution Scope:** Optimize FFI bounds, implement RAII structures, improve template boilerplates, and build Rust plugins.
 
 ### 🐹 Go Contributors
-- **Focus Areas:** `sdk/void-sdk-go` and `packages/void-cli/templates/go`
+- **Focus Areas:** `sdk/void-sdk-go` and `packages/cli/templates/go`
 - **Local Setup:** Ensure Go 1.24+ is installed.
 - **Contribution Scope:** Manage memory pinning, optimize WASM imports, update templates, and write Go benchmark plugins.
 
 ### ⚡ C++ Contributors
-- **Focus Areas:** `sdk/void-sdk-cpp` and `packages/void-cli/templates/cpp`
+- **Focus Areas:** `sdk/void-sdk-cpp` and `packages/cli/templates/cpp`
 - **Local Setup:** Install CMake and `emsdk`. Run `npm run cpp-init` in `sdk/void-sdk-cpp` to initialize autocompletion.
 - **Contribution Scope:** Enhance JSON conversion helpers, optimize CMake link options, write example plugins, and develop C++ templates.
 
@@ -66,7 +66,7 @@ You do not need to be an expert in all languages to contribute to Void! You can 
 2. Commit your changes: `git commit -am 'Add some cool features'`.
 3. Build and test locally using the CLI:
    ```bash
-   node packages/void-cli/bin/void.js build plugins/math
+   node packages/cli/bin/void.js build plugins/math
    ```
 4. Push to the branch: `git push origin feature/cool-idea`.
 5. Open a Pull Request.

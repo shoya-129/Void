@@ -1,27 +1,19 @@
-# Void Go Plugin Template
+# Void Rust Plugin Template
 
-A template for building WebAssembly (WASM) plugins for the **Void** framework using Go.
+A template for building WebAssembly (WASM) plugins for the **Void** framework using Rust.
 
 ## 🚀 Getting Started
 
 ### 1. Where to Start
-Write your plugin logic inside [main.go](file:///main.go). Exported functions must match the signature:
-```go
-func MyFunction(args map[string]json.RawMessage) (any, error)
-```
-And register them in `main()` using the Void SDK:
-```go
-func main() {
-    void.Register("my_function", MyFunction)
-}
-```
+Write your plugin logic inside [src/lib.rs](file:///src/lib.rs). Functions must be annotated with the Void SDK macro and registered:
+Refer to the Void Rust SDK documentation for macro registry instructions.
 
 ### 2. Build the Plugin
 Compile your plugin by running the build command in this directory:
 ```bash
 npx void build
 ```
-This compiles the Go code into a WebAssembly binary (`.wasm`) and packages it inside the build output directory configured in `void.json`.
+This compiles the Rust source code into a WebAssembly binary (`.wasm`) using `cargo build --target wasm32-unknown-unknown --release` and packages it under the build directory configured in `void.json`.
 
 ### 3. Test/Install Locally
 To test the built plugin in a local Void application:
@@ -43,9 +35,9 @@ npx void publish
 
 Your plugin configuration is defined in `void.json`. Here are the available fields:
 
-- **`name`**: The package name of your plugin (e.g. `@void/my-plugin`).
+- **`name`**: The package name of your plugin (e.g. `@voidwasm/my-plugin`).
 - **`version`**: The current semantic version of the plugin.
-- **`type`**: The compilation target language. Set to `"go"`.
+- **`type`**: The compilation target language. Set to `"rust"`.
 - **`buildDir`**: The target directory where compilation and wrapping assets are generated (e.g. `@void/my-plugin`).
 - **`types`**: Path to the TypeScript declaration file (e.g. `"types.d.ts"`). During the build process, the CLI validates its existence, copies it to the build output, and automatically sets the `"types"` entry in `package.json` for autocomplete and editor support.
 - **`export`**: The name of the JavaScript variable used to load the WASM binary, which is also the default export name (e.g. `"myPlugin"`). **Note:** Ensure you use a JS-friendly name (e.g. alphanumeric/camelCase) to ensure the generated JS code does not contain syntax errors. The CLI will automatically sanitize special characters (like `-`, `_`, or `@scope/`) into camelCase/JS-friendly format for the variable and the generated WASM binary name.

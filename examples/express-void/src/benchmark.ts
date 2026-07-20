@@ -1,8 +1,8 @@
 import { spawn, type ChildProcess } from 'child_process';
 import http from 'http';
 
-const NORMAL_URL = 'http://localhost:3001';
-const VOID_URL = 'http://localhost:3002';
+const NORMAL_URL = 'http://127.0.0.1:3001';
+const VOID_URL = 'http://127.0.0.1:3002';
 
 let normalProcess: ChildProcess | null = null;
 let voidProcess: ChildProcess | null = null;

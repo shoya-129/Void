@@ -1,8 +1,8 @@
 {
-  "name": "@tgrv/void-math",
+  "name": "@voidwasm/math",
   "version": "1.0.7",
   "type": "go",
-  "buildDir": "@void/void-math",
+  "buildDir": "@void/math",
   "types": "types.d.ts",
   "export": "math",
   "files": [

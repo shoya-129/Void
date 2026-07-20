@@ -1,4 +1,4 @@
-declare module '@tgrv/void-math' {
+declare module '@voidwasm/math' {
   interface MathPlugin {
     add(args: { numbers: number[] } | { a: number; b: number }): number;
     format_message(args: { template: string; value: number }): string;

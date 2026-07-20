@@ -6,10 +6,10 @@
   "types": "types.d.ts",
   "export": "{{name}}",
   "dependencies": {
-    "@tgrv/void-sdk-cpp": "^1.0.0"
+    "@voidwasm/sdk-cpp": "^1.0.0"
   },
   "files": [
     "*.d.ts",
-    "*.md"  
+    "*.md"
   ]
 }
